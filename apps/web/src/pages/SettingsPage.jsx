@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { Settings, Save, Plus, Trash2, Edit, Image as ImageIcon, Palette, Globe } from 'lucide-react';
+import { Settings, Save, Plus, Trash2, Edit, Image as ImageIcon, Palette, Globe, Lock, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -11,11 +11,19 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
 import pb from '@/lib/pocketbaseClient';
+import { useAuth } from '@/contexts/AuthContext.jsx';
 
 const SettingsPage = () => {
+  const { currentUser } = useAuth();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [passwordSaving, setPasswordSaving] = useState(false);
   const [services, setServices] = useState([]);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
   
   const [settings, setSettings] = useState({
     id: '',
@@ -101,6 +109,50 @@ const SettingsPage = () => {
     }
   };
 
+  const handleChangePassword = async (event) => {
+    event.preventDefault();
+
+    if (!currentUser?.id) {
+      toast.error('Please sign in again before changing your password');
+      return;
+    }
+
+    if (!passwordForm.currentPassword || !passwordForm.newPassword || !passwordForm.confirmPassword) {
+      toast.error('Please fill all password fields');
+      return;
+    }
+
+    if (passwordForm.newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters');
+      return;
+    }
+
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      toast.error('New password and confirmation do not match');
+      return;
+    }
+
+    setPasswordSaving(true);
+    try {
+      const identity = currentUser.email || currentUser.username;
+      await pb.collection('users').authWithPassword(identity, passwordForm.currentPassword, { $autoCancel: false });
+      await pb.collection('users').update(currentUser.id, {
+        oldPassword: passwordForm.currentPassword,
+        password: passwordForm.newPassword,
+        passwordConfirm: passwordForm.confirmPassword
+      }, { $autoCancel: false });
+      await pb.collection('users').authWithPassword(identity, passwordForm.newPassword, { $autoCancel: false });
+
+      setPasswordForm({ currentPassword: '', newPassword: '', confirmPassword: '' });
+      toast.success('Password changed successfully');
+    } catch (error) {
+      console.error('Password change error:', error);
+      toast.error('Could not change password. Check the current password and try again.');
+    } finally {
+      setPasswordSaving(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -131,8 +183,9 @@ const SettingsPage = () => {
       </div>
 
       <Tabs defaultValue="system" className="w-full">
-        <TabsList className="grid w-full grid-cols-3 mb-8 bg-muted/50 p-1 rounded-xl">
+        <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 mb-8 bg-muted/50 p-1 rounded-xl h-auto">
           <TabsTrigger value="system" className="rounded-lg data-[state=active]:shadow-sm">System</TabsTrigger>
+          <TabsTrigger value="account" className="rounded-lg data-[state=active]:shadow-sm">Account</TabsTrigger>
           <TabsTrigger value="branding" className="rounded-lg data-[state=active]:shadow-sm">Branding</TabsTrigger>
           <TabsTrigger value="services" className="rounded-lg data-[state=active]:shadow-sm">Services</TabsTrigger>
         </TabsList>
@@ -193,6 +246,70 @@ const SettingsPage = () => {
                   onCheckedChange={(v) => setSettings(s => ({...s, colorBackground: v ? 'dark' : 'light'}))}
                 />
               </div>
+            </div>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="account" className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
+          <div className="bg-card border border-border/50 rounded-[2rem] shadow-xl p-8">
+            <h3 className="text-xl font-display font-bold mb-6 flex items-center gap-2">
+              <Lock className="w-5 h-5 text-primary" /> Account Security
+            </h3>
+
+            <div className="grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-8">
+              <div className="bg-muted/30 border border-border/50 rounded-2xl p-5">
+                <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Signed in as</p>
+                <p className="text-lg font-black text-foreground">{currentUser?.name || currentUser?.username || 'User'}</p>
+                <p className="text-sm text-muted-foreground break-all">{currentUser?.email || '-'}</p>
+              </div>
+
+              <form onSubmit={handleChangePassword} className="space-y-5">
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    value={passwordForm.currentPassword}
+                    onChange={(event) => setPasswordForm(form => ({ ...form, currentPassword: event.target.value }))}
+                    className="h-12 bg-background"
+                    dir="ltr"
+                    autoComplete="current-password"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                  <div className="space-y-2">
+                    <Label htmlFor="newPassword">New Password</Label>
+                    <Input
+                      id="newPassword"
+                      type="password"
+                      value={passwordForm.newPassword}
+                      onChange={(event) => setPasswordForm(form => ({ ...form, newPassword: event.target.value }))}
+                      className="h-12 bg-background"
+                      dir="ltr"
+                      autoComplete="new-password"
+                    />
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                    <Input
+                      id="confirmPassword"
+                      type="password"
+                      value={passwordForm.confirmPassword}
+                      onChange={(event) => setPasswordForm(form => ({ ...form, confirmPassword: event.target.value }))}
+                      className="h-12 bg-background"
+                      dir="ltr"
+                      autoComplete="new-password"
+                    />
+                  </div>
+                </div>
+
+                <Button type="submit" disabled={passwordSaving} className="h-12 rounded-xl font-bold">
+                  {passwordSaving ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Lock className="w-4 h-4 mr-2" />}
+                  Change Password
+                </Button>
+              </form>
             </div>
           </div>
         </TabsContent>
