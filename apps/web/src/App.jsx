@@ -17,6 +17,11 @@ import DisplayScreen from '@/pages/DisplayScreen.jsx';
 import TrackingPage from '@/pages/TrackingPage.jsx';
 import StaffDashboard from '@/pages/StaffDashboard.jsx';
 import CounterSelectPage from '@/pages/CounterSelectPage.jsx';
+import AdminDashboard from '@/pages/AdminDashboard.jsx';
+import AdminUsersPage from '@/pages/AdminUsersPage.jsx';
+import ActivityLogPage from '@/pages/ActivityLogPage.jsx';
+import ReportsPage from '@/pages/ReportsPage.jsx';
+import SettingsPage from '@/pages/SettingsPage.jsx';
 
 import { Toaster } from 'sonner';
 
@@ -33,11 +38,14 @@ const NotFoundPage = () => (
 );
 
 const RootRedirect = () => {
-  const { isAuthenticated, selectedCounter, initialLoading } = useAuth();
+  const { isAuthenticated, selectedCounter, initialLoading, isAdmin } = useAuth();
 
   if (initialLoading) return null;
 
   if (isAuthenticated) {
+    if (isAdmin) {
+      return <Navigate to="/admin" replace />;
+    }
     if (selectedCounter) {
       return <Navigate to="/dashboard" replace />;
     }
@@ -94,6 +102,48 @@ function App() {
                   <Route path="/dashboard" element={
                     <ProtectedRoute requireCounter={true}>
                       <Layout><StaffDashboard /></Layout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/reports" element={
+                    <ProtectedRoute>
+                      <Layout><ReportsPage /></Layout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/settings" element={
+                    <ProtectedRoute>
+                      <Layout><SettingsPage /></Layout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/admin" element={
+                    <ProtectedRoute>
+                      <Layout><AdminDashboard /></Layout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/admin/users" element={
+                    <ProtectedRoute>
+                      <Layout><AdminUsersPage /></Layout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/admin/reports" element={
+                    <ProtectedRoute>
+                      <Layout><ReportsPage /></Layout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/admin/activity-log" element={
+                    <ProtectedRoute>
+                      <Layout><ActivityLogPage /></Layout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/admin/settings" element={
+                    <ProtectedRoute>
+                      <Layout><SettingsPage /></Layout>
                     </ProtectedRoute>
                   } />
 
