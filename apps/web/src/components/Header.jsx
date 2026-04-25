@@ -4,7 +4,7 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useLanguage } from '@/contexts/LanguageContext.jsx';
 import { Button } from '@/components/ui/button';
-import { Globe, Menu, X, Monitor, LogOut, Ticket, Search, Navigation } from 'lucide-react';
+import { BarChart3, Globe, Menu, X, Monitor, LogOut, Ticket, Search, Navigation, Settings } from 'lucide-react';
 import Logo from '@/components/Logo.jsx';
 
 export default function Header() {
@@ -41,12 +41,26 @@ export default function Header() {
         </Button>
       </Link>
       {isAuthenticated && (
-        <Link to="/dashboard" onClick={closeMenu}>
-          <Button variant={location.pathname === '/dashboard' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
-            <Navigation className="w-4 h-4 mx-1.5" />
-            Queue Dashboard
-          </Button>
-        </Link>
+        <>
+          <Link to="/dashboard" onClick={closeMenu}>
+            <Button variant={location.pathname === '/dashboard' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+              <Navigation className="w-4 h-4 mx-1.5" />
+              Queue Dashboard
+            </Button>
+          </Link>
+          <Link to="/reports" onClick={closeMenu}>
+            <Button variant={location.pathname === '/reports' || location.pathname === '/admin/reports' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+              <BarChart3 className="w-4 h-4 mx-1.5" />
+              Reports
+            </Button>
+          </Link>
+          <Link to="/settings" onClick={closeMenu}>
+            <Button variant={location.pathname === '/settings' || location.pathname === '/admin/settings' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+              <Settings className="w-4 h-4 mx-1.5" />
+              Settings
+            </Button>
+          </Link>
+        </>
       )}
     </>
   );
