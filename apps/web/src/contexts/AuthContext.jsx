@@ -92,6 +92,8 @@ export const AuthProvider = ({ children }) => {
   };
 
   const isAuthenticated = pb.authStore.isValid && currentUser !== null;
+  const isAdmin = currentUser?.role === 'admin';
+  const isStaff = ['staff', 'operator'].includes(currentUser?.role);
 
   if (initialLoading) {
     return (
@@ -107,6 +109,8 @@ export const AuthProvider = ({ children }) => {
       login, 
       logout, 
       isAuthenticated,
+      isAdmin,
+      isStaff,
       selectedCounter,
       setSelectedCounter,
       getSelectedCounter
@@ -124,6 +128,8 @@ export const useAuth = () => {
       login: async () => ({ success: false, error: 'Auth context not found' }),
       logout: () => {},
       isAuthenticated: false,
+      isAdmin: false,
+      isStaff: false,
       selectedCounter: null,
       setSelectedCounter: () => {},
       getSelectedCounter: () => null
