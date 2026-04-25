@@ -5,15 +5,19 @@ import { defaultConfig } from '@/config.js';
 
 export const hexToHSL = (hex) => {
   if (!hex) return null;
+  const color = String(hex).trim().toLowerCase();
+  if (color === 'light') return '0 0% 100%';
+  if (color === 'dark') return '222.2 84% 4.9%';
+  if (!/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(color)) return null;
   let r = 0, g = 0, b = 0;
-  if (hex.length === 4) {
-    r = parseInt(hex[1] + hex[1], 16);
-    g = parseInt(hex[2] + hex[2], 16);
-    b = parseInt(hex[3] + hex[3], 16);
-  } else if (hex.length === 7) {
-    r = parseInt(hex[1] + hex[2], 16);
-    g = parseInt(hex[3] + hex[4], 16);
-    b = parseInt(hex[5] + hex[6], 16);
+  if (color.length === 4) {
+    r = parseInt(color[1] + color[1], 16);
+    g = parseInt(color[2] + color[2], 16);
+    b = parseInt(color[3] + color[3], 16);
+  } else if (color.length === 7) {
+    r = parseInt(color[1] + color[2], 16);
+    g = parseInt(color[3] + color[4], 16);
+    b = parseInt(color[5] + color[6], 16);
   }
   r /= 255; g /= 255; b /= 255;
   let cmin = Math.min(r, g, b), cmax = Math.max(r, g, b), delta = cmax - cmin, h = 0, s = 0, l = 0;
@@ -34,14 +38,23 @@ export const useSettings = () => {
 
   const applySettingsToDOM = (s) => {
     const root = document.documentElement;
-    if (s.colorPrimary) root.style.setProperty('--primary', hexToHSL(s.colorPrimary));
-    if (s.colorSecondary) root.style.setProperty('--secondary', hexToHSL(s.colorSecondary));
-    if (s.colorBackground) root.style.setProperty('--background', hexToHSL(s.colorBackground));
-    if (s.colorText) root.style.setProperty('--foreground', hexToHSL(s.colorText));
-    if (s.colorSuccess) root.style.setProperty('--success', hexToHSL(s.colorSuccess));
-    if (s.colorWarning) root.style.setProperty('--warning', hexToHSL(s.colorWarning));
-    if (s.colorError) root.style.setProperty('--destructive', hexToHSL(s.colorError));
-    if (s.colorInfo) root.style.setProperty('--info', hexToHSL(s.colorInfo));
+    const primary = hexToHSL(s.colorPrimary);
+    const secondary = hexToHSL(s.colorSecondary);
+    const background = hexToHSL(s.colorBackground);
+    const text = hexToHSL(s.colorText);
+    const success = hexToHSL(s.colorSuccess);
+    const warning = hexToHSL(s.colorWarning);
+    const error = hexToHSL(s.colorError);
+    const info = hexToHSL(s.colorInfo);
+
+    if (primary) root.style.setProperty('--primary', primary);
+    if (secondary) root.style.setProperty('--secondary', secondary);
+    if (background) root.style.setProperty('--background', background);
+    if (text) root.style.setProperty('--foreground', text);
+    if (success) root.style.setProperty('--success', success);
+    if (warning) root.style.setProperty('--warning', warning);
+    if (error) root.style.setProperty('--destructive', error);
+    if (info) root.style.setProperty('--info', info);
   };
 
   const fetchSettings = useCallback(async () => {
