@@ -1,0 +1,56 @@
+<svg width="1600" height="900" viewBox="0 0 1600 900" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">AMIC admissions reception background</title>
+  <desc id="desc">A clean admissions reception area with queue rails, seating, windows, and a service counter.</desc>
+  <rect width="1600" height="900" fill="#F7FAFC"/>
+  <path d="M0 0H1600V308H0V0Z" fill="#EEF6F8"/>
+  <path d="M0 310H1600V900H0V310Z" fill="#F8FBFF"/>
+  <path d="M0 666H1600V900H0V666Z" fill="#EEF4F1"/>
+  <path d="M1040 72H1550V580H1040V72Z" fill="#E7F2F5"/>
+  <path d="M1074 116H1520V548H1074V116Z" fill="#FBFEFF"/>
+  <path d="M1074 250H1520" stroke="#D3E4E8" stroke-width="12"/>
+  <path d="M1074 386H1520" stroke="#D3E4E8" stroke-width="12"/>
+  <path d="M1228 116V548" stroke="#D3E4E8" stroke-width="12"/>
+  <path d="M1390 116V548" stroke="#D3E4E8" stroke-width="12"/>
+  <path d="M120 206H602C641.765 206 674 238.235 674 278V594H48V278C48 238.235 80.2355 206 120 206Z" fill="#FFFFFF"/>
+  <path d="M48 456H674V594H48V456Z" fill="#EAF3F5"/>
+  <path d="M84 594H638V628H84V594Z" fill="#0B6FAE"/>
+  <path d="M48 622H674" stroke="#D7A84C" stroke-width="12"/>
+  <path d="M160 256H562" stroke="#E2E8F0" stroke-width="20" stroke-linecap="round"/>
+  <path d="M160 314H420" stroke="#E2E8F0" stroke-width="20" stroke-linecap="round"/>
+  <path d="M102 356H208" stroke="#D7A84C" stroke-width="10" stroke-linecap="round"/>
+  <path d="M892 526H1340" stroke="#0B6FAE" stroke-width="18" stroke-linecap="round"/>
+  <path d="M920 526V714" stroke="#D7A84C" stroke-width="20" stroke-linecap="round"/>
+  <path d="M1080 526V714" stroke="#D7A84C" stroke-width="20" stroke-linecap="round"/>
+  <path d="M1240 526V714" stroke="#D7A84C" stroke-width="20" stroke-linecap="round"/>
+  <path d="M880 724H960" stroke="#D7A84C" stroke-width="16" stroke-linecap="round"/>
+  <path d="M1040 724H1120" stroke="#D7A84C" stroke-width="16" stroke-linecap="round"/>
+  <path d="M1200 724H1280" stroke="#D7A84C" stroke-width="16" stroke-linecap="round"/>
+  <path d="M1140 606H1490C1512.09 606 1530 623.909 1530 646V704H1100V646C1100 623.909 1117.91 606 1140 606Z" fill="#CFE5EA"/>
+  <path d="M1138 590H1492C1514.09 590 1532 607.909 1532 630V650H1098V630C1098 607.909 1115.91 590 1138 590Z" fill="#0B6FAE" fill-opacity="0.78"/>
+  <path d="M1110 704H1520V742H1110V704Z" fill="#123B5D" fill-opacity="0.85"/>
+  <path d="M746 202H968C982.359 202 994 213.641 994 228V346H720V228C720 213.641 731.641 202 746 202Z" fill="#F3F8F8"/>
+  <path d="M746 236H968" stroke="#D7A84C" stroke-width="12" stroke-linecap="round"/>
+  <path d="M730 346H984V650H730V346Z" fill="#E7F1F3"/>
+  <path d="M786 400H928" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round"/>
+  <path d="M786 462H928" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round"/>
+  <path d="M786 524H890" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round"/>
+  <path d="M250 126V210" stroke="#D7A84C" stroke-width="6" stroke-linecap="round"/>
+  <path d="M326 96V210" stroke="#D7A84C" stroke-width="6" stroke-linecap="round"/>
+  <path d="M402 136V210" stroke="#D7A84C" stroke-width="6" stroke-linecap="round"/>
+  <rect x="236" y="210" width="28" height="78" rx="14" fill="#D7A84C"/>
+  <rect x="312" y="210" width="28" height="78" rx="14" fill="#D7A84C"/>
+  <rect x="388" y="210" width="28" height="78" rx="14" fill="#D7A84C"/>
+  <path d="M76 762C348 716 578 708 782 746C1018 790 1234 790 1524 730" stroke="#D3E4E8" stroke-width="10" stroke-linecap="round"/>
+  <path d="M94 820C390 772 642 766 856 804C1088 846 1294 842 1512 794" stroke="#E1E9E5" stroke-width="8" stroke-linecap="round"/>
+  <path d="M128 684C152 622 180 598 212 612C244 626 238 676 214 736" stroke="#1F8F78" stroke-width="16" stroke-linecap="round"/>
+  <path d="M188 686C204 626 232 596 270 606C304 615 302 668 268 742" stroke="#4DAA7D" stroke-width="14" stroke-linecap="round"/>
+  <path d="M152 752H286L268 828H170L152 752Z" fill="#D7A84C" fill-opacity="0.9"/>
+  <path d="M0 0H1600V900H0V0Z" fill="url(#softLight)"/>
+  <defs>
+    <linearGradient id="softLight" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#FFFFFF" stop-opacity="0.42"/>
+      <stop offset="0.47" stop-color="#FFFFFF" stop-opacity="0.18"/>
+      <stop offset="1" stop-color="#0B6FAE" stop-opacity="0.08"/>
+    </linearGradient>
+  </defs>
+</svg>
