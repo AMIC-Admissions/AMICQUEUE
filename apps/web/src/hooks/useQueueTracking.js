@@ -2,8 +2,22 @@
 import { useState, useEffect, useCallback } from 'react';
 import pb from '@/lib/pocketbaseClient.js';
 
+const ACTIVE_QUEUE_STATUSES = new Set(['Pending', 'Waiting', 'Called']);
+
+const getRecordTime = (record) => new Date(record?.created || record?.createdAt || 0).getTime();
+
 export const useQueueTracking = (ticketNumber) => {
-  const [data, setData] = useState({ ticket: null, peopleBefore: 0, estWaitMins: 0, loading: true, error: null });
+  const [data, setData] = useState({
+    ticket: null,
+    peopleBefore: 0,
+    peopleAfter: 0,
+    queuePosition: 0,
+    serviceQueueSize: 0,
+    estWaitMins: 0,
+    avgServiceMins: 5,
+    loading: true,
+    error: null
+  });
 
   const fetchTracking = useCallback(async () => {
     if (!ticketNumber) {
@@ -20,14 +34,34 @@ export const useQueueTracking = (ticketNumber) => {
       });
       
       if (!ticketRes?.items || !Array.isArray(ticketRes.items) || ticketRes.items.length === 0) {
-        setData({ ticket: null, peopleBefore: 0, estWaitMins: 0, loading: false, error: 'Ticket not found in today\'s queue' });
+        setData({
+          ticket: null,
+          peopleBefore: 0,
+          peopleAfter: 0,
+          queuePosition: 0,
+          serviceQueueSize: 0,
+          estWaitMins: 0,
+          avgServiceMins: 5,
+          loading: false,
+          error: 'Ticket not found in today\'s queue'
+        });
         return;
       }
       
       const ticket = ticketRes.items[0];
 
       if (!ticket?.service) {
-        setData({ ticket, peopleBefore: 0, estWaitMins: 0, loading: false, error: 'Invalid ticket data structure' });
+        setData({
+          ticket,
+          peopleBefore: 0,
+          peopleAfter: 0,
+          queuePosition: 0,
+          serviceQueueSize: 0,
+          estWaitMins: 0,
+          avgServiceMins: 5,
+          loading: false,
+          error: 'Invalid ticket data structure'
+        });
         return;
       }
 
@@ -36,10 +70,20 @@ export const useQueueTracking = (ticketNumber) => {
         $autoCancel: false
       }).catch(() => []);
 
-      const peopleBefore = allServiceTickets?.filter(t => 
-        (t?.status === 'Pending' || t?.status === 'Waiting') && 
-        new Date(t?.created || 0) < new Date(ticket?.created || new Date())
-      ).length ?? 0;
+      const ticketTime = getRecordTime(ticket);
+      const activeServiceTickets = (allServiceTickets ?? [])
+        .filter(t => ACTIVE_QUEUE_STATUSES.has(t?.status))
+        .sort((a, b) => getRecordTime(a) - getRecordTime(b));
+
+      const isTicketActive = ACTIVE_QUEUE_STATUSES.has(ticket?.status);
+      const peopleBefore = isTicketActive
+        ? activeServiceTickets.filter(t => t?.id !== ticket?.id && getRecordTime(t) < ticketTime).length
+        : 0;
+      const peopleAfter = isTicketActive
+        ? activeServiceTickets.filter(t => t?.id !== ticket?.id && getRecordTime(t) > ticketTime).length
+        : 0;
+      const queuePosition = isTicketActive ? peopleBefore + 1 : 0;
+      const serviceQueueSize = activeServiceTickets.length;
 
       const servedTickets = allServiceTickets?.filter(t => t?.status === 'Served' && t?.servedAt && t?.calledAt) ?? [];
       
@@ -52,19 +96,35 @@ export const useQueueTracking = (ticketNumber) => {
       setData({
         ticket,
         peopleBefore,
-        estWaitMins: ticket?.status === 'Served' ? 0 : Math.max(1, (peopleBefore + 1) * avgMins),
+        peopleAfter,
+        queuePosition,
+        serviceQueueSize,
+        avgServiceMins: avgMins,
+        estWaitMins: isTicketActive && ticket?.status !== 'Called' ? Math.max(0, peopleBefore * avgMins) : 0,
         loading: false,
         error: null
       });
 
     } catch (err) {
       console.error('Tracking fetch error:', err);
-      setData({ ticket: null, peopleBefore: 0, estWaitMins: 0, loading: false, error: err?.message ?? 'Failed to track ticket' });
+      setData({
+        ticket: null,
+        peopleBefore: 0,
+        peopleAfter: 0,
+        queuePosition: 0,
+        serviceQueueSize: 0,
+        estWaitMins: 0,
+        avgServiceMins: 5,
+        loading: false,
+        error: err?.message ?? 'Failed to track ticket'
+      });
     }
   }, [ticketNumber]);
 
   useEffect(() => {
     fetchTracking();
+    if (!ticketNumber) return undefined;
+
     const interval = setInterval(fetchTracking, 5000);
     
     try {
@@ -81,7 +141,17 @@ export const useQueueTracking = (ticketNumber) => {
         // Ignore unsubscribe errors
       }
     };
-  }, [fetchTracking]);
+  }, [fetchTracking, ticketNumber]);
 
-  return data ?? { ticket: null, peopleBefore: 0, estWaitMins: 0, loading: false, error: 'Unknown error' };
+  return data ?? {
+    ticket: null,
+    peopleBefore: 0,
+    peopleAfter: 0,
+    queuePosition: 0,
+    serviceQueueSize: 0,
+    estWaitMins: 0,
+    avgServiceMins: 5,
+    loading: false,
+    error: 'Unknown error'
+  };
 };
