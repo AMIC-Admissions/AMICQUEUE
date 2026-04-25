@@ -86,7 +86,7 @@ const DisplayScreenContent = () => {
     || getAppPath('/assets/amic-site-background.jpg');
   const logoUrl = getImageUrl(settings, settings?.logoImage)
     || settings?.logoPath
-    || getAppPath('/assets/amic-logo.svg');
+    || getAppPath('/assets/amic-logo.jpg');
 
   const currentTicket = tickets.length > 0 ? tickets[0] : null;
   const previousTickets = tickets.slice(1, 6);
@@ -109,9 +109,9 @@ const DisplayScreenContent = () => {
       <div className="relative z-10 w-full p-8 flex justify-between items-start">
         <div className="w-[300px]"></div> {/* Spacer */}
         
-        <div className="flex items-center justify-center bg-black/30 p-6 rounded-3xl backdrop-blur-md border border-white/10 shadow-2xl">
+        <div className="flex items-center justify-center bg-white/90 p-6 rounded-3xl backdrop-blur-md border border-white/30 shadow-2xl">
           {logoUrl ? (
-            <img src={logoUrl} alt="System Logo" className="max-w-[200px] h-auto object-contain" />
+            <img src={logoUrl} alt="System Logo" className="w-[min(64vw,620px)] h-auto object-contain" />
           ) : (
             <h1 className="text-5xl font-black tracking-widest uppercase text-white drop-shadow-lg">AMIC</h1>
           )}
