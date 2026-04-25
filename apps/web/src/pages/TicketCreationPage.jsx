@@ -12,6 +12,7 @@ import { useLanguage } from '@/contexts/LanguageContext.jsx';
 import { QRCodeSVG } from 'qrcode.react';
 import ErrorBoundary from '@/components/ErrorBoundary.jsx';
 import pb from '@/lib/pocketbaseClient.js';
+import { getAppUrl } from '@/lib/runtimeUrls.js';
 
 const SERVICES_KEYS = [
   'Inquiry', 'Complaint', 'Suggestion', 'New Registration', 'Full-Year Fee Payment', 
@@ -132,7 +133,7 @@ const TicketCreationPageContent = () => {
       alert(`${isRtl ? 'تم إنشاء التذكرة بنجاح: ' : 'Ticket created successfully: '}${ticketNumber}`);
 
       // 6. Open WhatsApp automatically with ticket number
-      const trackingUrl = `${window.location.origin}/track?ticket=${ticketNumber}`;
+      const trackingUrl = getAppUrl(`/track?ticket=${encodeURIComponent(ticketNumber)}`);
       const waMsgAr = `أهلاً وسهلاً بكم في مكتب القبول والتسجيل\nرقم تذكرتك: ${ticketNumber}\nيمكنك متابعة دورك:\n${trackingUrl}`;
       const waMsgEn = `Welcome to Admissions & Registration Office\nYour ticket: ${ticketNumber}\nTrack here:\n${trackingUrl}`;
       const message = language === 'ar' ? waMsgAr : waMsgEn;
@@ -169,7 +170,7 @@ const TicketCreationPageContent = () => {
     setError('');
   };
 
-  const trackingUrl = createdTicket ? `${window.location.origin}/track?ticket=${createdTicket.ticketNumber}` : '';
+  const trackingUrl = createdTicket ? getAppUrl(`/track?ticket=${encodeURIComponent(createdTicket.ticketNumber)}`) : '';
 
   const openWhatsAppManual = () => {
     if (!createdTicket || !createdTicket.mobileNumber) return;
