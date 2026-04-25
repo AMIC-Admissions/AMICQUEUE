@@ -13,6 +13,7 @@ import { motion } from 'framer-motion';
 import confetti from 'canvas-confetti';
 import { useTranslation } from '@/hooks/useTranslation.js';
 import { useLanguage } from '@/contexts/LanguageContext.jsx';
+import { getAppUrl } from '@/lib/runtimeUrls.js';
 
 const CheckInSuccessPage = () => {
   const { ticketId } = useParams();
@@ -90,7 +91,7 @@ const CheckInSuccessPage = () => {
   }
 
   const safeTicketNumber = ticketData?.ticketNumber ?? 'UNKNOWN';
-  const trackingUrl = `${window.location.origin}/track?ticket=${encodeURIComponent(safeTicketNumber)}`;
+  const trackingUrl = getAppUrl(`/track?ticket=${encodeURIComponent(safeTicketNumber)}`);
 
   const copyLink = () => {
     navigator.clipboard.writeText(trackingUrl);
