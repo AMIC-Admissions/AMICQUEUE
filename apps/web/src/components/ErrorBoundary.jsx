@@ -2,6 +2,7 @@
 import React from 'react';
 import { AlertCircle, RefreshCw, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { getAppPath } from '@/lib/runtimeUrls.js';
 
 class ErrorBoundary extends React.Component {
   constructor(props) {
@@ -33,7 +34,7 @@ class ErrorBoundary extends React.Component {
             <Button onClick={() => window.location.reload()} size="lg" className="shadow-lg shadow-primary/20 font-bold px-8">
               <RefreshCw className="w-5 h-5 mr-2" /> Reload Page
             </Button>
-            <Button variant="outline" size="lg" onClick={() => window.location.href = '/'} className="font-bold px-8">
+            <Button variant="outline" size="lg" onClick={() => window.location.href = getAppPath('/')} className="font-bold px-8">
               <Home className="w-5 h-5 mr-2" /> Go to Home
             </Button>
           </div>
