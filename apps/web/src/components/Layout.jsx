@@ -17,7 +17,7 @@ const Layout = ({ children, hideHeader = false, hideFooter = false }) => {
   const settings = Array.isArray(syncData?.settings) && syncData.settings.length > 0 ? syncData.settings[0] : null;
   const backgroundUrl = settings?.backgroundImage
     ? pb.files.getUrl(settings, settings.backgroundImage)
-    : settings?.backgroundImagePath || getAppPath('/assets/amic-background.svg');
+    : settings?.backgroundImagePath || getAppPath('/assets/amic-site-background.jpg');
 
   return (
     <div className="relative min-h-[100dvh] flex flex-col w-full overflow-x-hidden bg-background" dir={language === 'ar' ? 'rtl' : 'ltr'}>
