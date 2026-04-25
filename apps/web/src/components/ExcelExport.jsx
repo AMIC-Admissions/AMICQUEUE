@@ -15,19 +15,20 @@ export const ExcelExport = () => {
       let filterStr = '';
       if (filterToday) {
         const todayStr = new Date().toISOString().split('T')[0];
-        filterStr = `createdAt >= "${todayStr} 00:00:00"`;
+        filterStr = `created >= "${todayStr} 00:00:00"`;
       }
 
       const records = await pb.collection('tickets').getFullList({
         filter: filterStr,
-        sort: '-createdAt',
+        sort: '-created',
         $autoCancel: false
       });
 
       const formattedData = records.map(t => {
         let waitMins = 0, serviceMins = 0;
-        if (t.calledAt) {
-          waitMins = Math.round((new Date(t.calledAt) - new Date(t.createdAt)) / 60000);
+        const createdAt = t.created || t.createdAt;
+        if (t.calledAt && createdAt) {
+          waitMins = Math.round((new Date(t.calledAt) - new Date(createdAt)) / 60000);
         }
         if (t.calledAt && t.servedAt) {
           serviceMins = Math.round((new Date(t.servedAt) - new Date(t.calledAt)) / 60000);
@@ -39,12 +40,12 @@ export const ExcelExport = () => {
           'Service': t.service,
           'Status': t.status,
           'Counter': t.counter || 'N/A',
-          'Created Time': new Date(t.createdAt).toLocaleString(),
+          'Created Time': createdAt ? new Date(createdAt).toLocaleString() : 'N/A',
           'Called Time': t.calledAt ? new Date(t.calledAt).toLocaleString() : 'N/A',
           'Served Time': t.servedAt ? new Date(t.servedAt).toLocaleString() : 'N/A',
           'Wait Time (mins)': waitMins || 'N/A',
           'Service Time (mins)': serviceMins || 'N/A',
-          'Mobile': t.mobile,
+          'Mobile': t.mobileNumber || t.mobile,
           'Parent Name': t.parentName
         };
       });
