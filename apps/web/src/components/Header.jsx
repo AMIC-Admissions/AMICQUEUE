@@ -4,7 +4,8 @@ import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useLanguage } from '@/contexts/LanguageContext.jsx';
 import { Button } from '@/components/ui/button';
-import { Globe, Menu, X, Monitor, LogOut, Ticket, Search, Layers, Navigation } from 'lucide-react';
+import { Globe, Menu, X, Monitor, LogOut, Ticket, Search, Navigation } from 'lucide-react';
+import Logo from '@/components/Logo.jsx';
 
 export default function Header() {
   const { isAuthenticated, logout } = useAuth();
@@ -54,14 +55,9 @@ export default function Header() {
     <header className="sticky top-0 z-40 w-full border-b border-border/40 bg-card/80 backdrop-blur-xl supports-[backdrop-filter]:bg-card/60 shadow-sm">
       <div className="container mx-auto px-4 h-20 flex items-center justify-between gap-4">
         
-        <Link to="/" className="flex items-center gap-3 interactive-element shrink-0" onClick={closeMenu}>
-          <div className="w-10 h-10 bg-primary text-primary-foreground rounded-xl flex items-center justify-center font-bold shadow-lg shadow-primary/30">
-            <Layers className="w-6 h-6" />
-          </div>
-          <span className="font-display font-black text-2xl tracking-tight text-foreground hidden sm:block">
-            AMIC <span className="text-primary">Queue</span>
-          </span>
-        </Link>
+        <div onClick={closeMenu}>
+          <Logo />
+        </div>
 
         <div className="hidden lg:flex flex-1 justify-center">
           <div className="flex items-center gap-1.5 bg-muted/40 p-1.5 rounded-2xl border border-border/40">
