@@ -1,0 +1,21 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">AMIC Queue logo</title>
+  <desc id="desc">AMIC admissions queue management logo mark.</desc>
+  <rect width="512" height="512" rx="112" fill="#F8FBFF"/>
+  <rect x="34" y="34" width="444" height="444" rx="92" fill="url(#paint0_linear)" fill-opacity="0.1"/>
+  <path d="M256 74C318.3 74 368.8 124.5 368.8 186.8V240H143.2V186.8C143.2 124.5 193.7 74 256 74Z" fill="#0B6FAE"/>
+  <path d="M179 240H333V357C333 379.1 315.1 397 293 397H219C196.9 397 179 379.1 179 357V240Z" fill="#123B5D"/>
+  <path d="M210 186C210 160.6 230.6 140 256 140C281.4 140 302 160.6 302 186V240H210V186Z" fill="#F8FBFF"/>
+  <path d="M143.2 240H368.8V274H143.2V240Z" fill="#D7A84C"/>
+  <path d="M205 318H307" stroke="#F8FBFF" stroke-width="26" stroke-linecap="round"/>
+  <path d="M222 357H290" stroke="#D7A84C" stroke-width="20" stroke-linecap="round"/>
+  <path d="M138 420H374" stroke="#0B6FAE" stroke-width="22" stroke-linecap="round"/>
+  <path d="M176 452H336" stroke="#D7A84C" stroke-width="14" stroke-linecap="round"/>
+  <defs>
+    <linearGradient id="paint0_linear" x1="68" y1="58" x2="464" y2="459" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0B6FAE"/>
+      <stop offset="0.52" stop-color="#1F8F78"/>
+      <stop offset="1" stop-color="#D7A84C"/>
+    </linearGradient>
+  </defs>
+</svg>
