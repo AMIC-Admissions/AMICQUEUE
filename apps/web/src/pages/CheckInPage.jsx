@@ -11,6 +11,7 @@ import pb from '@/lib/pocketbaseClient';
 import { NotificationService } from '@/utils/NotificationService.js';
 import { toast } from 'sonner';
 import { AlertCircle, RefreshCw } from 'lucide-react';
+import { getAppUrl } from '@/lib/runtimeUrls.js';
 
 const CheckInPage = () => {
   const navigate = useNavigate();
@@ -64,7 +65,7 @@ const CheckInPage = () => {
 
       if (!record?.id) throw new Error('Ticket creation failed: no record ID returned');
 
-      const trackingLink = `${window.location.origin}/track?ticket=${ticketNumber}`;
+      const trackingLink = getAppUrl(`/track?ticket=${encodeURIComponent(ticketNumber)}`);
       
       try {
         await NotificationService.sendWhatsApp(formData.mobile, ticketNumber, formData.branch, formData.service, trackingLink);
