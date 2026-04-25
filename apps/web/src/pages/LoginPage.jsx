@@ -30,7 +30,7 @@ const LoginPageContent = () => {
       const result = await login(email, password);
       if (result?.success) {
         toast.success('Login successful');
-        navigate('/counter-select', { replace: true });
+        navigate(result.user?.role === 'admin' ? '/admin' : '/counter-select', { replace: true });
       } else {
         toast.error(result?.error || 'Invalid email or password');
       }
