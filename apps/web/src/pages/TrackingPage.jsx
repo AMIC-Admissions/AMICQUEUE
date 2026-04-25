@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Search, AlertCircle, CheckCircle2, ArrowRight, MapPin, Ticket } from 'lucide-react';
 import ErrorBoundary from '@/components/ErrorBoundary.jsx';
 import { useLanguage } from '@/contexts/LanguageContext.jsx';
+import { getAppPath } from '@/lib/runtimeUrls.js';
 
 const TrackingPageContent = () => {
   const { language, t } = useLanguage();
@@ -216,7 +217,7 @@ const TrackingPageContent = () => {
           <Search className="w-5 h-5 mx-2" />
           {isRtl ? 'تتبع تذكرة أخرى' : 'Track Another Ticket'}
         </Button>
-        <Button variant="ghost" onClick={() => window.location.href = '/create-ticket'} className="h-14 font-bold text-muted-foreground hover:text-foreground">
+        <Button variant="ghost" onClick={() => window.location.href = getAppPath('/create-ticket')} className="h-14 font-bold text-muted-foreground hover:text-foreground">
           {isRtl ? 'إصدار تذكرة جديدة' : 'Create New Ticket'}
         </Button>
       </div>
