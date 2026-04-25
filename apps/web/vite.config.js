@@ -13,6 +13,7 @@ const pkg = JSON.parse(readFileSync('./package.json', 'utf-8'));
 const allDeps = Object.keys(pkg.dependencies || {});
 
 const isDev = process.env.NODE_ENV !== 'production';
+const isGitHubPages = process.env.GITHUB_PAGES === 'true';
 
 const configHorizonsViteErrorHandler = `
 const observer = new MutationObserver((mutations) => {
@@ -82,9 +83,9 @@ window.onerror = (message, source, lineno, colno, errorObj) => {
 
 const configHorizonsConsoleErrorHandler = `
 const originalConsoleError = console.error;
-const MATCH_LINE_COL_REGEX = /:(\\d+):(\\d+)\\)?\\s*$/; // regex to match the :lineNum:colNum
-const MATCH_AT_REGEX = /^\\s*at\\s+(?:async\\s+)?(?:.*?\\s+)?\\(?/; // regex to remove the 'at' keyword and any 'async' or function name
-const MATCH_PATH_REGEX = /^\\//; // regex to remove the leading slash
+const MATCH_LINE_COL_REGEX = /:(\\d+):(\\d+)\\)?\\s*$/;
+const MATCH_AT_REGEX = /^\\s*at\\s+(?:async\\s+)?(?:.*?\\s+)?\\(?/;
+const MATCH_PATH_REGEX = /^\\//;
 
 function parseStackFrameLine(line) {
 	const lineColMatch = line.match(MATCH_LINE_COL_REGEX);
@@ -157,7 +158,6 @@ const originalFetch = window.fetch;
 window.fetch = function(...args) {
 	const url = args[0] instanceof Request ? args[0].url : args[0];
 
-	// Skip WebSocket URLs
 	if (url.startsWith('ws:') || url.startsWith('wss:')) {
 		return originalFetch.apply(this, args);
 	}
@@ -166,7 +166,6 @@ window.fetch = function(...args) {
 		.then(async response => {
 			const contentType = response.headers.get('Content-Type') || '';
 
-			// Exclude HTML document responses
 			const isDocumentResponse =
 				contentType.includes('text/html') ||
 				contentType.includes('application/xhtml+xml');
@@ -181,7 +180,7 @@ window.fetch = function(...args) {
 			return response;
 		})
 		.catch(error => {
-			if (!url.match(/\.html?$/i)) {
+			if (!url.match(/\\.html?$/i)) {
 				console.error(error);
 			}
 
@@ -273,8 +272,8 @@ const addTransformIndexHtml = {
 
 console.warn = () => { };
 
-const logger = createLogger()
-const loggerError = logger.error
+const logger = createLogger();
+const loggerError = logger.error;
 
 logger.error = (msg, options) => {
 	if (options?.error?.toString().includes('CssSyntaxError: [postcss]')) {
@@ -282,9 +281,10 @@ logger.error = (msg, options) => {
 	}
 
 	loggerError(msg, options);
-}
+};
 
 export default defineConfig({
+	base: isGitHubPages ? '/AMICQUEUE/' : '/',
 	optimizeDeps: {
 		include: allDeps,
 	},
@@ -303,7 +303,7 @@ export default defineConfig({
 		allowedHosts: true,
 	},
 	resolve: {
-		extensions: ['.jsx', '.js', '.tsx', '.ts', '.json',],
+		extensions: ['.jsx', '.js', '.tsx', '.ts', '.json'],
 		alias: {
 			'@': path.resolve(__dirname, './src'),
 		},
