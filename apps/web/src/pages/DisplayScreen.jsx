@@ -83,7 +83,7 @@ const DisplayScreenContent = () => {
 
   const bgUrl = getImageUrl(settings, settings?.backgroundImage)
     || settings?.backgroundImagePath
-    || getAppPath('/assets/amic-background.svg');
+    || getAppPath('/assets/amic-site-background.jpg');
   const logoUrl = getImageUrl(settings, settings?.logoImage)
     || settings?.logoPath
     || getAppPath('/assets/amic-logo.svg');
