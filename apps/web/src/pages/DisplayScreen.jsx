@@ -6,6 +6,7 @@ import pb from '@/lib/pocketbaseClient.js';
 import ErrorBoundary from '@/components/ErrorBoundary.jsx';
 import EnableSoundButton from '@/components/EnableSoundButton.jsx';
 import { useVoiceAnnouncement } from '@/hooks/useVoiceAnnouncement.js';
+import { getAppPath } from '@/lib/runtimeUrls.js';
 
 const DisplayScreenContent = () => {
   const [tickets, setTickets] = useState([]);
@@ -80,8 +81,12 @@ const DisplayScreenContent = () => {
     return pb.files.getUrl(record, filename);
   };
 
-  const bgUrl = getImageUrl(settings, settings?.backgroundImage);
-  const logoUrl = getImageUrl(settings, settings?.logoImage);
+  const bgUrl = getImageUrl(settings, settings?.backgroundImage)
+    || settings?.backgroundImagePath
+    || getAppPath('/assets/amic-background.svg');
+  const logoUrl = getImageUrl(settings, settings?.logoImage)
+    || settings?.logoPath
+    || getAppPath('/assets/amic-logo.svg');
 
   const currentTicket = tickets.length > 0 ? tickets[0] : null;
   const previousTickets = tickets.slice(1, 6);
