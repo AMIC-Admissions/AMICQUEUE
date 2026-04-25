@@ -1,6 +1,7 @@
 
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import pb from '@/lib/pocketbaseClient.js';
+import { getAppPath } from '@/lib/runtimeUrls.js';
 
 const AuthContext = createContext(null);
 
@@ -84,7 +85,7 @@ export const AuthProvider = ({ children }) => {
       pb.authStore.clear();
       setCurrentUser(null);
       setSelectedCounter(null);
-      window.location.href = '/login';
+      window.location.assign(getAppPath('/login'));
     } catch (error) {
       // Fail silently
     }
