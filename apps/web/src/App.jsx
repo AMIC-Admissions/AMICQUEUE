@@ -1,4 +1,3 @@
-
 import React, { useEffect } from 'react';
 import { Route, Routes, BrowserRouter as Router, Navigate } from 'react-router-dom';
 import { LanguageProvider } from '@/contexts/LanguageContext.jsx';
@@ -21,17 +20,21 @@ import CounterSelectPage from '@/pages/CounterSelectPage.jsx';
 
 import { Toaster } from 'sonner';
 
+const routerBasename = import.meta.env.BASE_URL === '/'
+  ? undefined
+  : import.meta.env.BASE_URL.replace(/\/$/, '');
+
 const NotFoundPage = () => (
   <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
     <h1 className="text-7xl font-black text-primary mb-4 font-display">404</h1>
     <h2 className="text-3xl font-bold mb-4">Page Not Found</h2>
-    <a href="/" className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-bold shadow-lg">Return Home</a>
+    <a href={import.meta.env.BASE_URL} className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-bold shadow-lg">Return Home</a>
   </div>
 );
 
 const RootRedirect = () => {
   const { isAuthenticated, selectedCounter, initialLoading } = useAuth();
-  
+
   if (initialLoading) return null;
 
   if (isAuthenticated) {
@@ -40,6 +43,7 @@ const RootRedirect = () => {
     }
     return <Navigate to="/counter-select" replace />;
   }
+
   return <Navigate to="/login" replace />;
 };
 
@@ -50,7 +54,9 @@ function App() {
         window.speechSynthesis.cancel();
       }
     };
+
     window.addEventListener('beforeunload', handleBeforeUnload);
+
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
       if ('speechSynthesis' in window) {
@@ -65,36 +71,32 @@ function App() {
         <AuthProvider>
           <SoundStateSync />
           <SyncProvider>
-            <Router>
+            <Router basename={routerBasename}>
               <ScrollToTop />
               <DevChecklist />
               <ErrorBoundary>
                 <Routes>
-                  {/* Auth Logic Root */}
                   <Route path="/" element={<RootRedirect />} />
-                  
-                  {/* Public / Unprotected Routes */}
+
                   <Route path="/home" element={<Layout><HomePage /></Layout>} />
                   <Route path="/login" element={<Layout><LoginPage /></Layout>} />
                   <Route path="/create-ticket" element={<Layout><TicketCreationPage /></Layout>} />
                   <Route path="/track" element={<Layout><TrackingPage /></Layout>} />
-                  
-                  {/* Public Display Screen */}
+
                   <Route path="/display" element={<DisplayScreen />} />
-                  
-                  {/* Protected Staff Routes */}
+
                   <Route path="/counter-select" element={
                     <ProtectedRoute>
                       <Layout><CounterSelectPage /></Layout>
                     </ProtectedRoute>
                   } />
+
                   <Route path="/dashboard" element={
                     <ProtectedRoute requireCounter={true}>
                       <Layout><StaffDashboard /></Layout>
                     </ProtectedRoute>
                   } />
-                  
-                  {/* Catch-All */}
+
                   <Route path="*" element={<Layout><NotFoundPage /></Layout>} />
                 </Routes>
               </ErrorBoundary>
