@@ -23,6 +23,7 @@ import AddStaffPage from '@/pages/AddStaffPage.jsx';
 import ActivityLogPage from '@/pages/ActivityLogPage.jsx';
 import ReportsPage from '@/pages/ReportsPage.jsx';
 import SettingsPage from '@/pages/SettingsPage.jsx';
+import CounterMonitorPage from '@/pages/CounterMonitorPage.jsx';
 
 import { Toaster } from 'sonner';
 
@@ -91,6 +92,7 @@ function App() {
                   <Route path="/login" element={<Layout><LoginPage /></Layout>} />
                   <Route path="/create-ticket" element={<Layout><TicketCreationPage /></Layout>} />
                   <Route path="/track" element={<Layout><TrackingPage /></Layout>} />
+                  <Route path="/counter-monitor" element={<Layout><CounterMonitorPage /></Layout>} />
 
                   <Route path="/display" element={<DisplayScreen />} />
 
