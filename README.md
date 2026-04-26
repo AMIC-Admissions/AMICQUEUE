@@ -12,6 +12,8 @@ Queue management app with a React/Vite frontend, API service, and PocketBase bac
 
 The deployed GitHub Pages build falls back to a browser-local database (`localStorage`) when no shared backend URL is configured. In that mode, data is saved on the same browser/device only and is not shared between different devices or browsers.
 
+For a Hostinger VPS setup that makes queue data shared across browsers, see [HOSTINGER_VPS_SETUP.md](./HOSTINGER_VPS_SETUP.md).
+
 Default local login:
 
 - Email: `admin@amic.com`
