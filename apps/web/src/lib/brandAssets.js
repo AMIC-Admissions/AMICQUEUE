@@ -26,7 +26,14 @@ const normalizePublishedPath = (value) => {
 export const resolvePublishedAssetUrl = ({ record, fileField, pathField, fallbackPath }) => {
   const uploadedFile = record?.[fileField];
   if (record && typeof uploadedFile === 'string' && uploadedFile.trim()) {
-    return pb.files.getUrl(record, uploadedFile);
+    try {
+      const uploadedUrl = pb.files?.getUrl?.(record, uploadedFile);
+      if (typeof uploadedUrl === 'string' && uploadedUrl.trim()) {
+        return uploadedUrl;
+      }
+    } catch {
+      // Fall through to published path or static fallback when local storage cannot resolve file URLs.
+    }
   }
 
   const publishedPath = normalizePublishedPath(record?.[pathField]);

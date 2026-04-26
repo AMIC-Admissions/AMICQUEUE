@@ -9,6 +9,7 @@ import { Label } from '@/components/ui/label';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { toast } from 'sonner';
 import ErrorBoundary from '@/components/ErrorBoundary.jsx';
+import Logo from '@/components/Logo.jsx';
 
 const LoginPageContent = () => {
   const [email, setEmail] = useState('');
@@ -47,8 +48,8 @@ const LoginPageContent = () => {
       
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="w-16 h-16 bg-primary rounded-2xl flex items-center justify-center mx-auto mb-6 text-primary-foreground font-bold text-3xl shadow-lg shadow-primary/20">
-            A
+          <div className="mx-auto mb-6 inline-flex rounded-[28px] border border-border/60 bg-white/90 px-5 py-4 shadow-lg shadow-primary/10">
+            <Logo imageClassName="w-[220px] sm:w-[260px]" />
           </div>
           <h1 className="text-3xl font-display font-black mb-2 text-foreground">System Login</h1>
           <p className="text-muted-foreground">Authenticate to access queue management</p>

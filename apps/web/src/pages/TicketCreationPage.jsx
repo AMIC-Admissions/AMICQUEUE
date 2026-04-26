@@ -2,17 +2,20 @@ import React, { useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Ticket, Phone, CheckCircle2, ArrowRight, Printer, Loader2, Plus, MessageCircle, User } from 'lucide-react';
+import { Ticket, Phone, ArrowRight, Printer, Loader2, Plus, MessageCircle, User, Building2, Clock3, ScanLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useLanguage } from '@/contexts/LanguageContext.jsx';
+import { useSyncData } from '@/contexts/SyncContext.jsx';
 import { QRCodeSVG } from 'qrcode.react';
 import ErrorBoundary from '@/components/ErrorBoundary.jsx';
 import pb from '@/lib/pocketbaseClient.js';
-import { getAppUrl } from '@/lib/runtimeUrls.js';
+import { getAppPath, getAppUrl } from '@/lib/runtimeUrls.js';
 import { useTicketNumbering } from '@/hooks/useTicketNumbering.js';
+import { resolvePublishedAssetUrl } from '@/lib/brandAssets.js';
+import TicketBarcode from '@/components/TicketBarcode.jsx';
 
 const SERVICES_KEYS = [
   'Inquiry',
@@ -33,6 +36,8 @@ const BRANCH_OPTIONS = [
   { value: 'AMIS', label: 'Ajyal' },
   { value: 'KIDS', label: 'Kids Gate' },
 ];
+
+const getBranchLabel = (value) => BRANCH_OPTIONS.find((branch) => branch.value === value)?.label || value;
 
 const playSuccessSound = () => {
   try {
@@ -62,8 +67,17 @@ const playSuccessSound = () => {
 
 const TicketCreationPageContent = () => {
   const { language, t } = useLanguage();
+  const syncData = useSyncData();
   const isRtl = language === 'ar';
   const { generateTicketNumber } = useTicketNumbering();
+  const settings = Array.isArray(syncData?.settings) && syncData.settings.length > 0 ? syncData.settings[0] : null;
+  const logoUrl = resolvePublishedAssetUrl({
+    record: settings,
+    fileField: 'logoImage',
+    pathField: 'logoPath',
+    fallbackPath: '/assets/amic-logo.png'
+  });
+  const fallbackLogoUrl = getAppPath('/assets/amic-logo.png');
 
   const [formData, setFormData] = useState({
     parentName: '',
@@ -121,19 +135,8 @@ const TicketCreationPageContent = () => {
       playSuccessSound();
       setSuccess(true);
       setCreatedTicket(record);
-
-      const trackingUrl = getAppUrl(`/track?ticket=${encodeURIComponent(ticketNumber)}`);
-      const waMessage = [
-        'Welcome to Admissions & Registration Office',
-        `Your ticket: ${ticketNumber}`,
-        `Track here: ${trackingUrl}`,
-      ].join('\n');
-
-      let waNumber = cleanNumber;
-      if (waNumber.startsWith('+')) waNumber = waNumber.substring(1);
-      window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(waMessage)}`, '_blank');
-
       setFormData({ parentName: '', mobile: '', branch: '', service: '' });
+      window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('Ticket creation error:', err);
       const detailedMsg = err?.data ? JSON.stringify(err.data) : (err?.message || 'Unknown error');
@@ -150,6 +153,15 @@ const TicketCreationPageContent = () => {
   };
 
   const trackingUrl = createdTicket ? getAppUrl(`/track?ticket=${encodeURIComponent(createdTicket.ticketNumber)}`) : '';
+  const createdAtLabel = createdTicket
+    ? new Intl.DateTimeFormat(language === 'ar' ? 'ar-SA' : 'en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      }).format(new Date(createdTicket.createdAt || createdTicket.created || Date.now()))
+    : '';
 
   const openWhatsAppManual = () => {
     if (!createdTicket || !createdTicket.mobileNumber) return;
@@ -166,8 +178,12 @@ const TicketCreationPageContent = () => {
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };
 
+  const handlePrint = () => {
+    window.print();
+  };
+
   return (
-    <div className="flex-1 max-w-2xl mx-auto py-8 sm:py-12 w-full z-10 relative">
+    <div className={`flex-1 mx-auto py-8 sm:py-12 w-full z-10 relative ${success ? 'max-w-5xl print-ticket-shell' : 'max-w-2xl'}`}>
       <Helmet><title>{`${t.ticket.issueNew} - AMIC`}</title></Helmet>
 
       <AnimatePresence mode="wait">
@@ -282,49 +298,130 @@ const TicketCreationPageContent = () => {
             key="success"
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
-            className="bg-card shadow-2xl rounded-3xl overflow-hidden text-center border border-border/50"
+            className="print-ticket-card overflow-hidden rounded-[2rem] border border-[#222D64]/10 bg-white text-left shadow-[0_28px_70px_rgba(34,45,100,0.12)]"
           >
-            <div className="bg-emerald-500/10 p-12 border-b border-emerald-500/20 flex flex-col items-center">
-              <div className="w-20 h-20 bg-emerald-500 text-white rounded-full flex items-center justify-center shadow-xl shadow-emerald-500/30 mb-6">
-                <CheckCircle2 className="w-10 h-10" />
+            <div className="border-b border-[#222D64]/10 bg-[linear-gradient(135deg,rgba(34,45,100,0.04),rgba(111,206,181,0.12))] px-8 py-8 sm:px-10">
+              <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <div className="inline-flex items-center rounded-full bg-[#6FCEB5]/20 px-4 py-2 text-xs font-black uppercase tracking-[0.3em] text-[#1b6957] sm:text-sm">
+                    Ticket Ready
+                  </div>
+                  <div className="mt-5 rounded-[28px] border border-[#222D64]/10 bg-white/90 px-5 py-4 shadow-sm">
+                    <img
+                      src={logoUrl}
+                      alt="AMIC group logo"
+                      className="h-14 w-auto max-w-full object-contain sm:h-16"
+                      onError={(event) => {
+                        if (event.currentTarget.src !== fallbackLogoUrl) {
+                          event.currentTarget.src = fallbackLogoUrl;
+                        }
+                      }}
+                    />
+                  </div>
+                  <h2 className="mt-6 text-3xl font-black tracking-tight text-[#222D64] sm:text-4xl">
+                    Your queue ticket is ready
+                  </h2>
+                  <p className="mt-3 max-w-2xl text-base font-medium leading-7 text-[#222D64]/65 sm:text-lg">
+                    This page now shows the ticket directly after creation, with a clean print layout that includes the logo and a scannable code.
+                  </p>
+                </div>
+
+                <div className="w-full max-w-xs rounded-[28px] border border-[#222D64]/10 bg-white/95 p-5 text-center shadow-sm">
+                  <div className="inline-flex items-center gap-2 rounded-full bg-[#222D64]/6 px-3 py-2 text-xs font-black uppercase tracking-[0.24em] text-[#222D64]/55">
+                    <ScanLine className="h-4 w-4" />
+                    Track Online
+                  </div>
+                  <div className="mt-4 flex justify-center">
+                    <QRCodeSVG value={trackingUrl} size={156} level="H" includeMargin={true} className="rounded-2xl bg-white p-3 shadow-sm" />
+                  </div>
+                  <Link to={`/track?ticket=${createdTicket?.ticketNumber}`} className="mt-4 block break-all rounded-2xl bg-[#222D64]/5 px-4 py-3 text-sm font-bold text-[#222D64] hover:bg-[#222D64]/10">
+                    {trackingUrl}
+                  </Link>
+                </div>
               </div>
-              <h2 className="text-3xl font-black text-emerald-600 dark:text-emerald-400 mb-2">
-                Ticket created successfully
-              </h2>
-              <p className="text-muted-foreground font-medium">{t.ticket.keepTicket}</p>
             </div>
 
-            <div className="p-8 sm:p-12 flex flex-col items-center">
-              <p className="text-sm font-bold uppercase tracking-widest text-muted-foreground mb-4">
-                {t.ticket.yourNumber}
-              </p>
-              <div className="text-[80px] md:text-[100px] font-black font-variant-tabular text-primary leading-none tracking-tighter mb-8 drop-shadow-sm">
-                {createdTicket?.ticketNumber}
+            <div className="grid gap-6 px-8 py-8 sm:px-10 lg:grid-cols-[1.1fr_0.9fr]">
+              <div className="rounded-[32px] bg-[#222D64] p-8 text-white shadow-[0_24px_60px_rgba(34,45,100,0.2)]">
+                <p className="text-sm font-black uppercase tracking-[0.34em] text-white/60">
+                  {t.ticket.yourNumber}
+                </p>
+                <div className="mt-5 text-[64px] font-black leading-none tracking-tight sm:text-[88px]">
+                  {createdTicket?.ticketNumber}
+                </div>
+
+                <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                  <div className="rounded-[24px] bg-white/10 px-5 py-4">
+                    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-white/55">
+                      <Building2 className="h-4 w-4" />
+                      Branch
+                    </div>
+                    <p className="mt-3 text-2xl font-black">
+                      {getBranchLabel(createdTicket?.branch)}
+                    </p>
+                  </div>
+                  <div className="rounded-[24px] bg-white/10 px-5 py-4">
+                    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-white/55">
+                      <Clock3 className="h-4 w-4" />
+                      Issued
+                    </div>
+                    <p className="mt-3 text-lg font-bold leading-7 text-white">
+                      {createdAtLabel}
+                    </p>
+                  </div>
+                </div>
+
+                <div className="mt-8 rounded-[28px] bg-white px-4 py-5 text-center shadow-inner">
+                  <TicketBarcode value={createdTicket?.ticketNumber} />
+                </div>
               </div>
 
-              <div className="flex flex-col items-center gap-4 mb-10 w-full max-w-sm bg-background p-6 rounded-3xl border border-border/60 shadow-sm">
-                <QRCodeSVG value={trackingUrl} size={200} level="H" includeMargin={true} className="bg-white p-2 rounded-2xl shadow-sm" />
-                <Link to={`/track?ticket=${createdTicket?.ticketNumber}`} className="text-primary font-bold hover:underline text-sm break-all mt-3 bg-primary/5 px-4 py-2 rounded-lg text-center block">
-                  {trackingUrl}
-                </Link>
-              </div>
+              <div className="flex flex-col gap-5">
+                <div className="rounded-[28px] border border-[#222D64]/10 bg-[#f8fbfd] p-6 shadow-sm">
+                  <p className="text-sm font-black uppercase tracking-[0.32em] text-[#222D64]/45">
+                    Ticket Details
+                  </p>
+                  <dl className="mt-5 space-y-4">
+                    <div className="flex items-start justify-between gap-4 border-b border-[#222D64]/8 pb-4">
+                      <dt className="text-sm font-bold text-[#222D64]/55">Parent Name</dt>
+                      <dd className="text-right text-base font-black text-[#222D64]">{createdTicket?.parentName}</dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4 border-b border-[#222D64]/8 pb-4">
+                      <dt className="text-sm font-bold text-[#222D64]/55">Service</dt>
+                      <dd className="text-right text-base font-black text-[#222D64]">{t.services[createdTicket?.service] || createdTicket?.service}</dd>
+                    </div>
+                    <div className="flex items-start justify-between gap-4">
+                      <dt className="text-sm font-bold text-[#222D64]/55">Mobile</dt>
+                      <dd className="text-right text-base font-black text-[#222D64]" dir="ltr">{createdTicket?.mobileNumber}</dd>
+                    </div>
+                  </dl>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 w-full max-w-md mx-auto mb-6">
-                <Button className="h-14 font-bold shadow-md interactive-element rounded-xl w-full bg-[#25D366] hover:bg-[#1DA851] text-white" onClick={openWhatsAppManual}>
+                <div className="rounded-[28px] border border-dashed border-[#222D64]/20 bg-white px-6 py-5">
+                  <p className="text-base font-bold text-[#222D64]/70">
+                    Keep this ticket for tracking and counter announcements.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <div className="no-print border-t border-[#222D64]/10 px-8 py-6 sm:px-10">
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                <Button className="h-14 font-bold shadow-md interactive-element rounded-2xl w-full bg-[#25D366] hover:bg-[#1DA851] text-white" onClick={openWhatsAppManual}>
                   <MessageCircle className="w-5 h-5 mx-2" />
                   Send via WhatsApp
                 </Button>
 
-                <Button variant="outline" className="h-14 font-bold interactive-element rounded-xl w-full bg-background hover:bg-muted" onClick={() => window.print()}>
+                <Button variant="outline" className="h-14 font-bold interactive-element rounded-2xl w-full bg-background hover:bg-muted border-[#222D64]/10" onClick={handlePrint}>
                   <Printer className="w-5 h-5 mx-2" />
-                  {t.ticket.print}
+                  Print Ticket
+                </Button>
+
+                <Button variant="ghost" className="h-14 font-bold text-muted-foreground hover:text-foreground interactive-element w-full rounded-2xl" onClick={handleCreateAnother}>
+                  <Plus className="w-5 h-5 mx-2" />
+                  Create Another
                 </Button>
               </div>
-
-              <Button variant="ghost" className="h-14 font-bold text-muted-foreground hover:text-foreground interactive-element w-full max-w-md mx-auto rounded-xl" onClick={handleCreateAnother}>
-                <Plus className="w-5 h-5 mx-2" />
-                Create Another
-              </Button>
             </div>
           </motion.div>
         )}
