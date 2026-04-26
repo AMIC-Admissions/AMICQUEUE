@@ -54,7 +54,19 @@ const RootRedirect = () => {
     return <Navigate to="/counter-select" replace />;
   }
 
-  return <Navigate to="/login" replace />;
+  return <Navigate to="/create-ticket" replace />;
+};
+
+const HomeRoute = () => {
+  const { isAuthenticated, initialLoading } = useAuth();
+
+  if (initialLoading) return null;
+
+  if (!isAuthenticated) {
+    return <Navigate to="/create-ticket" replace />;
+  }
+
+  return <Layout><HomePage /></Layout>;
 };
 
 function App() {
@@ -88,11 +100,10 @@ function App() {
                 <Routes>
                   <Route path="/" element={<RootRedirect />} />
 
-                  <Route path="/home" element={<Layout><HomePage /></Layout>} />
+                  <Route path="/home" element={<HomeRoute />} />
                   <Route path="/login" element={<Layout><LoginPage /></Layout>} />
                   <Route path="/create-ticket" element={<Layout><TicketCreationPage /></Layout>} />
                   <Route path="/track" element={<Layout><TrackingPage /></Layout>} />
-                  <Route path="/counter-monitor" element={<Layout><CounterMonitorPage /></Layout>} />
 
                   <Route path="/display" element={<DisplayScreen />} />
 
@@ -117,6 +128,12 @@ function App() {
                   <Route path="/settings" element={
                     <ProtectedRoute>
                       <Layout><SettingsPage /></Layout>
+                    </ProtectedRoute>
+                  } />
+
+                  <Route path="/counter-monitor" element={
+                    <ProtectedRoute>
+                      <Layout><CounterMonitorPage /></Layout>
                     </ProtectedRoute>
                   } />
 
