@@ -69,6 +69,10 @@ const playSuccessSound = () => {
   }
 };
 
+const wait = (delayMs) => new Promise((resolve) => {
+  window.setTimeout(resolve, delayMs);
+});
+
 const TicketCreationPageContent = () => {
   const { language, t } = useLanguage();
   const syncData = useSyncData();
@@ -125,17 +129,42 @@ const TicketCreationPageContent = () => {
         cleanNumber = `+${cleanNumber}`;
       }
 
-      const ticketNumber = await generateTicketNumber(branch);
-      const payload = {
-        ticketNumber,
-        branch,
-        service,
-        mobileNumber: cleanNumber,
-        parentName: parentName.trim(),
-        status: 'Pending',
-      };
+      const attemptedTicketNumbers = [];
+      let record = null;
+      let lastCreateError = null;
 
-      const record = await pb.collection('tickets').create(payload, { $autoCancel: false });
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const ticketNumber = await generateTicketNumber(branch, attemptedTicketNumbers);
+        attemptedTicketNumbers.push(ticketNumber);
+
+        try {
+          const payload = {
+            ticketNumber,
+            branch,
+            service,
+            mobileNumber: cleanNumber,
+            parentName: parentName.trim(),
+            status: 'Pending',
+          };
+
+          record = await pb.collection('tickets').create(payload, { $autoCancel: false });
+          break;
+        } catch (createError) {
+          lastCreateError = createError;
+          const createStatus = createError?.status || createError?.response?.status;
+
+          if (attempt < 2 && createStatus === 400) {
+            await wait(150);
+            continue;
+          }
+
+          throw createError;
+        }
+      }
+
+      if (!record && lastCreateError) {
+        throw lastCreateError;
+      }
 
       playSuccessSound();
       setSuccess(true);
