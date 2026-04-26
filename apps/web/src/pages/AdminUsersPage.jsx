@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { Monitor, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
+import { ExternalLink, Monitor, Plus, RefreshCw, Trash2, Users } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -167,6 +168,11 @@ const AdminUsersPageContent = () => {
           </div>
         </div>
         <div className="flex gap-3 w-full md:w-auto">
+          <Button asChild variant="outline" className="w-full md:w-auto interactive-element rounded-xl h-12">
+            <Link to="/counter-monitor">
+              <ExternalLink className="w-4 h-4 mr-2" /> Public Monitor
+            </Link>
+          </Button>
           <Button variant="outline" onClick={handleRefresh} disabled={loading} className="w-full md:w-auto interactive-element rounded-xl h-12">
             <RefreshCw className={`w-4 h-4 mr-2 ${loading ? 'animate-spin' : ''}`} /> Refresh
           </Button>
@@ -208,7 +214,7 @@ const AdminUsersPageContent = () => {
             </Button>
           </form>
 
-          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2">
             {countersList.map((counter) => (
               <div
                 key={counter.id}
