@@ -1,9 +1,10 @@
+
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useLanguage } from '@/contexts/LanguageContext.jsx';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Globe, Menu, X, Monitor, LogOut, Ticket, Search, Settings, LayoutDashboard, Users } from 'lucide-react';
+import { Activity, BarChart3, Globe, Menu, X, Monitor, LogOut, Ticket, Search, Settings, LayoutDashboard, Users } from 'lucide-react';
 import Logo from '@/components/Logo.jsx';
 
 export default function Header() {
@@ -37,6 +38,12 @@ export default function Header() {
         <Button variant={location.pathname === '/display' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
           <Monitor className="w-4 h-4 mx-1.5" />
           Display Screen
+        </Button>
+      </Link>
+      <Link to="/counter-monitor" onClick={closeMenu}>
+        <Button variant={location.pathname === '/counter-monitor' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+          <Activity className="w-4 h-4 mx-1.5" />
+          Counter Monitor
         </Button>
       </Link>
       {isAuthenticated && !isAdmin && (
