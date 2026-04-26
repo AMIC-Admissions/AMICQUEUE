@@ -66,13 +66,11 @@ const LoginPageContent = () => {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   className="pl-10 h-12 bg-background text-foreground"
-                  placeholder="admin@amic.com"
+                  placeholder="name@example.com"
                   required
                   dir="ltr"
                 />
               </div>
-              <p className="text-xs text-muted-foreground mt-1 text-right">Hint: admin@amic.com</p>
-              <p className="text-xs text-muted-foreground mt-1 text-right">Password: admin123</p>
             </div>
 
             <div className="space-y-2">
