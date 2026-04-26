@@ -2,17 +2,16 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { useSettings } from '@/hooks/useSettings.js';
-import pb from '@/lib/pocketbaseClient';
-import { getAppPath } from '@/lib/runtimeUrls.js';
+import { resolvePublishedAssetUrl } from '@/lib/brandAssets.js';
 
 const Logo = ({ imageClassName = '' }) => {
   const { settings } = useSettings();
-  
-  // Handle both uploaded file and text path
-  let finalLogoUrl = settings?.logoPath || getAppPath('/assets/amic-logo.jpg');
-  if (settings?.logoImage) {
-    finalLogoUrl = pb.files.getUrl(settings, settings.logoImage);
-  }
+  const finalLogoUrl = resolvePublishedAssetUrl({
+    record: settings,
+    fileField: 'logoImage',
+    pathField: 'logoPath',
+    fallbackPath: '/assets/amic-logo.png'
+  });
 
   return (
     <Link to="/" className="flex items-center z-header relative interactive-element shrink-0" aria-label="AMIC Queue home">

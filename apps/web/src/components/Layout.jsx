@@ -5,8 +5,7 @@ import Footer from './Footer.jsx';
 import { useLanguage } from '@/contexts/LanguageContext.jsx';
 import { useSyncData } from '@/contexts/SyncContext.jsx';
 import { useAuth } from '@/contexts/AuthContext.jsx';
-import pb from '@/lib/pocketbaseClient.js';
-import { getAppPath } from '@/lib/runtimeUrls.js';
+import { resolvePublishedAssetUrl } from '@/lib/brandAssets.js';
 
 const Layout = ({ children, hideHeader = false, hideFooter = false }) => {
   const { language } = useLanguage();
@@ -15,18 +14,21 @@ const Layout = ({ children, hideHeader = false, hideFooter = false }) => {
   
   // Safely check settings
   const settings = Array.isArray(syncData?.settings) && syncData.settings.length > 0 ? syncData.settings[0] : null;
-  const backgroundUrl = settings?.backgroundImage
-    ? pb.files.getUrl(settings, settings.backgroundImage)
-    : settings?.backgroundImagePath || getAppPath('/assets/amic-site-background.jpg');
+  const backgroundUrl = resolvePublishedAssetUrl({
+    record: settings,
+    fileField: 'backgroundImage',
+    pathField: 'backgroundImagePath',
+    fallbackPath: '/assets/amic-site-background.png'
+  });
 
   return (
     <div className="relative min-h-[100dvh] flex flex-col w-full overflow-x-hidden bg-white text-foreground" dir={language === 'ar' ? 'rtl' : 'ltr'}>
       <div 
-        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-40 pointer-events-none"
+        className="fixed inset-0 z-0 bg-cover bg-center bg-no-repeat opacity-35 pointer-events-none"
         style={{ backgroundImage: `url(${backgroundUrl})` }}
       />
       
-      <div className="fixed inset-0 z-0 bg-white/60 pointer-events-none" />
+      <div className="fixed inset-0 z-0 bg-white/72 pointer-events-none" />
 
       {/* Render Header securely using the context inside it */}
       {!hideHeader && <Header />}

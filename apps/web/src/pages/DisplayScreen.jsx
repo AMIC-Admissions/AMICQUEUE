@@ -1,29 +1,62 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Helmet } from 'react-helmet';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence, motion } from 'framer-motion';
+import { Building2, CalendarDays, Clock3, MonitorSpeaker, Ticket } from 'lucide-react';
 import pb from '@/lib/pocketbaseClient.js';
 import ErrorBoundary from '@/components/ErrorBoundary.jsx';
 import EnableSoundButton from '@/components/EnableSoundButton.jsx';
 import { useVoiceAnnouncement } from '@/hooks/useVoiceAnnouncement.js';
-import { getAppPath } from '@/lib/runtimeUrls.js';
+import { useSyncContext } from '@/contexts/SyncContext.jsx';
+import { resolvePublishedAssetUrl } from '@/lib/brandAssets.js';
+
+const BRANCH_LABELS = {
+  AMIS: 'Ajyal',
+  Ajyal: 'Ajyal',
+  KIDS: 'Kids Gate',
+  KidsGate: 'Kids Gate',
+  'Kids Gate': 'Kids Gate',
+};
+
+const formatBranch = (branch) => BRANCH_LABELS[branch] || branch || 'Branch';
+const getCounterValue = (ticket) => ticket?.counter ?? ticket?.counterNumber ?? '--';
+const getTicketTimestamp = (ticket) => ticket?.calledAt || ticket?.updated || ticket?.created || 0;
+
+const formatTime = (date) => new Intl.DateTimeFormat(undefined, {
+  hour: '2-digit',
+  minute: '2-digit'
+}).format(date);
+
+const formatDate = (date) => new Intl.DateTimeFormat(undefined, {
+  weekday: 'short',
+  day: 'numeric',
+  month: 'long',
+  year: 'numeric'
+}).format(date);
 
 const DisplayScreenContent = () => {
+  const { data: syncData } = useSyncContext();
   const [tickets, setTickets] = useState([]);
-  const [settings, setSettings] = useState(null);
   const [fetchError, setFetchError] = useState(false);
-  
+  const [now, setNow] = useState(new Date());
   const { addToVoiceQueue, lastAnnouncedTicket } = useVoiceAnnouncement();
   const soundEnabledRef = useRef(false);
 
-  // Keep a ref of the sound state to avoid unnecessary hook dependencies in the interval
+  useEffect(() => {
+    const syncClock = setInterval(() => {
+      setNow(new Date());
+    }, 30000);
+
+    return () => clearInterval(syncClock);
+  }, []);
+
   useEffect(() => {
     const checkSound = () => {
       soundEnabledRef.current = localStorage.getItem('soundEnabled') === 'true';
     };
+
     checkSound();
     window.addEventListener('storage', checkSound);
-    // Custom polling to catch same-window updates easily
+
     const interval = setInterval(checkSound, 1000);
     return () => {
       window.removeEventListener('storage', checkSound);
@@ -31,37 +64,21 @@ const DisplayScreenContent = () => {
     };
   }, []);
 
-  useEffect(() => {
-    const loadSettings = async () => {
-      try {
-        const records = await pb.collection('settings').getFullList(1, { $autoCancel: false });
-        if (records.length > 0) {
-          setSettings(records[0]);
-        }
-      } catch (err) {
-        console.error('Failed to load settings', err);
-      }
-    };
-    loadSettings();
-  }, []);
-
   const fetchTickets = async () => {
     try {
       const records = await pb.collection('tickets').getList(1, 100, {
         filter: 'status="Called"',
-        sort: '-updated', // Fetches most recently called/updated first
+        sort: '-updated',
         $autoCancel: false
       });
-      
-      setTickets(records.items || []);
+
+      const items = records.items || [];
+      setTickets(items);
       setFetchError(false);
-      
-      if (records.items.length > 0) {
-        const currentTicket = records.items[0];
-        // Check if new ticket needs announcing
-        if (soundEnabledRef.current && (!lastAnnouncedTicket || lastAnnouncedTicket.id !== currentTicket.id)) {
-          addToVoiceQueue(currentTicket);
-        }
+
+      const currentTicket = items[0];
+      if (currentTicket && soundEnabledRef.current && (!lastAnnouncedTicket || lastAnnouncedTicket.id !== currentTicket.id)) {
+        addToVoiceQueue(currentTicket);
       }
     } catch (err) {
       console.error('Fetch error:', err);
@@ -74,139 +91,250 @@ const DisplayScreenContent = () => {
     const intervalId = setInterval(fetchTickets, 2000);
     return () => clearInterval(intervalId);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lastAnnouncedTicket]); // Re-bind when lastAnnouncedTicket changes so closure uses fresh value
+  }, [lastAnnouncedTicket]);
 
-  const getImageUrl = (record, filename) => {
-    if (!record || !filename) return null;
-    return pb.files.getUrl(record, filename);
-  };
+  const settings = Array.isArray(syncData?.settings) && syncData.settings.length > 0 ? syncData.settings[0] : null;
 
-  const bgUrl = getImageUrl(settings, settings?.backgroundImage)
-    || settings?.backgroundImagePath
-    || getAppPath('/assets/amic-site-background.jpg');
-  const logoUrl = getImageUrl(settings, settings?.logoImage)
-    || settings?.logoPath
-    || getAppPath('/assets/amic-logo.jpg');
+  const backgroundUrl = resolvePublishedAssetUrl({
+    record: settings,
+    fileField: 'backgroundImage',
+    pathField: 'backgroundImagePath',
+    fallbackPath: '/assets/amic-site-background.png'
+  });
 
-  const currentTicket = tickets.length > 0 ? tickets[0] : null;
-  const previousTickets = tickets.slice(1, 6);
+  const logoUrl = resolvePublishedAssetUrl({
+    record: settings,
+    fileField: 'logoImage',
+    pathField: 'logoPath',
+    fallbackPath: '/assets/amic-logo.png'
+  });
+
+  const calledTickets = useMemo(() => {
+    return [...tickets].sort((left, right) => new Date(getTicketTimestamp(right)) - new Date(getTicketTimestamp(left)));
+  }, [tickets]);
+
+  const currentTicket = calledTickets[0] || null;
+  const previousTickets = calledTickets.slice(1, 5);
+  const systemTitle = settings?.systemTitle?.trim() || 'Admissions & Registration Office';
 
   return (
-    <div 
-      className="w-screen h-[100dvh] flex flex-col bg-slate-950 text-white fixed inset-0 z-50 overflow-hidden font-sans"
+    <div
+      className="fixed inset-0 z-50 overflow-hidden text-slate-900"
       style={{
-        backgroundImage: bgUrl ? `url(${bgUrl})` : undefined,
+        backgroundColor: '#f5f7fb',
+        backgroundImage: `url(${backgroundUrl})`,
         backgroundSize: 'cover',
         backgroundPosition: 'center'
       }}
     >
-      <Helmet><title>Queue Display - NOW SERVING</title></Helmet>
+      <Helmet><title>Queue Display - AMIC</title></Helmet>
 
-      {/* Dark Overlay for Readability */}
-      <div className="absolute inset-0 bg-[rgba(0,0,0,0.6)] backdrop-blur-[2px] pointer-events-none" />
+      <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.92),rgba(245,247,251,0.88))]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(111,206,181,0.18),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(34,45,100,0.1),transparent_32%)]" />
 
-      {/* Header / Logo Area */}
-      <div className="relative z-10 w-full p-8 flex justify-between items-start">
-        <div className="w-[300px]"></div> {/* Spacer */}
-        
-        <div className="flex items-center justify-center bg-white/90 p-6 rounded-3xl backdrop-blur-md border border-white/30 shadow-2xl">
-          {logoUrl ? (
-            <img src={logoUrl} alt="System Logo" className="w-[min(64vw,620px)] h-auto object-contain" />
-          ) : (
-            <h1 className="text-5xl font-black tracking-widest uppercase text-white drop-shadow-lg">AMIC</h1>
-          )}
-        </div>
-        
-        <div className="w-[300px] flex justify-end">
-          <EnableSoundButton />
-        </div>
-      </div>
+      <div className="relative z-10 flex h-full flex-col px-6 py-6 xl:px-10 xl:py-8">
+        <header className="grid grid-cols-[auto_1fr_auto] items-start gap-6">
+          <div className="flex items-start">
+            <div className="rounded-[28px] border border-[#222D64]/10 bg-white/92 px-5 py-4 shadow-[0_18px_40px_rgba(34,45,100,0.08)]">
+              <img
+                src={logoUrl}
+                alt="AMIC group logo"
+                className="h-12 w-auto object-contain xl:h-14"
+              />
+            </div>
+          </div>
 
-      {/* Main Focus Area */}
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 w-full max-w-7xl mx-auto px-8 pb-12">
-        <AnimatePresence mode="wait">
-          {currentTicket ? (
-            <motion.div 
-              key={currentTicket.id}
-              initial={{ opacity: 0, scale: 0.95, y: 20 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 1.05, filter: 'blur(10px)' }}
-              transition={{ duration: 0.6, type: "spring", bounce: 0.3 }}
-              className="flex flex-col items-center justify-center w-full"
-            >
-              <motion.div 
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.2 }}
-                className="bg-green-600 text-white px-16 py-4 rounded-full text-display-sm mb-12 shadow-[0_0_50px_rgba(22,163,74,0.6)] border-4 border-green-400/30"
+          <div className="flex flex-col items-center pt-1 text-center">
+            <p className="text-sm font-bold uppercase tracking-[0.35em] text-[#222D64]/45">
+              AMIC Queue System
+            </p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-[#222D64] xl:text-4xl">
+              {systemTitle}
+            </h1>
+            <div className="mt-4 inline-flex items-center rounded-full border border-[#222D64]/10 bg-white/86 px-4 py-2 text-sm font-semibold text-[#222D64]/65 shadow-sm">
+              Live public display
+            </div>
+          </div>
+
+          <div className="flex flex-col items-end gap-3">
+            <EnableSoundButton
+              compact
+              className="border border-[#222D64]/10 bg-white/92 text-[#222D64] shadow-[0_12px_28px_rgba(34,45,100,0.08)] hover:bg-white"
+            />
+
+            <div className="min-w-[220px] rounded-[24px] border border-[#222D64]/10 bg-white/88 px-5 py-4 text-right shadow-[0_16px_32px_rgba(34,45,100,0.06)]">
+              <div className="flex items-center justify-end gap-2 text-xs font-bold uppercase tracking-[0.28em] text-[#222D64]/45">
+                <CalendarDays className="h-4 w-4" />
+                Today
+              </div>
+              <div className="mt-2 text-3xl font-black tracking-tight text-[#222D64]">
+                {formatTime(now)}
+              </div>
+              <div className="mt-1 text-sm font-medium text-[#222D64]/55">
+                {formatDate(now)}
+              </div>
+            </div>
+          </div>
+        </header>
+
+        <main className="flex flex-1 items-center py-8">
+          <AnimatePresence mode="wait">
+            {currentTicket ? (
+              <motion.section
+                key={currentTicket.id}
+                initial={{ opacity: 0, y: 24, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -18, scale: 1.01 }}
+                transition={{ duration: 0.45, ease: 'easeOut' }}
+                className="w-full"
               >
-                NOW SERVING
-              </motion.div>
+                <div className="rounded-[42px] border border-[#222D64]/10 bg-white/84 p-8 shadow-[0_30px_80px_rgba(34,45,100,0.14)] backdrop-blur-xl xl:p-12">
+                  <div className="flex flex-col gap-8 xl:flex-row xl:items-start xl:justify-between">
+                    <div className="max-w-3xl">
+                      <div
+                        className="inline-flex items-center gap-2 rounded-full px-5 py-2 text-sm font-black uppercase tracking-[0.32em]"
+                        style={{ backgroundColor: 'rgba(111, 206, 181, 0.22)', color: '#1f6d5b' }}
+                      >
+                        <MonitorSpeaker className="h-4 w-4" />
+                        Now Serving
+                      </div>
 
-              <div className="grid grid-cols-2 w-full gap-8 bg-black/50 border border-white/20 rounded-[3rem] p-16 backdrop-blur-xl shadow-2xl">
-                <div className="flex flex-col items-center justify-center border-r border-white/20 pr-8">
-                  <p className="text-4xl text-slate-300 font-bold uppercase tracking-widest mb-6 drop-shadow-md">Ticket</p>
-                  <p className="text-display-lg text-white">
-                    {currentTicket.ticketNumber}
-                  </p>
+                      <h2 className="mt-6 text-5xl font-black tracking-tight text-[#222D64] xl:text-6xl">
+                        Current queue call
+                      </h2>
+                      <p className="mt-4 text-lg font-medium leading-8 text-[#222D64]/62 xl:text-2xl">
+                        Families can follow the active ticket and counter clearly from a distance.
+                      </p>
+                    </div>
+
+                    {fetchError && (
+                      <div className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-700">
+                        Connection retry in progress
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="mt-10 grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
+                    <div className="rounded-[34px] bg-[#222D64] p-8 text-white shadow-[0_24px_60px_rgba(34,45,100,0.28)] xl:p-10">
+                      <p className="text-sm font-bold uppercase tracking-[0.32em] text-white/58">
+                        Ticket Number
+                      </p>
+                      <p className="mt-6 text-[clamp(5rem,10vw,9.25rem)] font-black leading-none tracking-tight">
+                        {currentTicket.ticketNumber}
+                      </p>
+
+                      <div className="mt-8 flex flex-wrap gap-3">
+                        <span className="rounded-full bg-white/10 px-4 py-2 text-base font-semibold">
+                          {formatBranch(currentTicket.branch)}
+                        </span>
+                        <span className="rounded-full bg-white/10 px-4 py-2 text-base font-semibold">
+                          {currentTicket.service || 'Service'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="rounded-[34px] border border-[#222D64]/10 bg-white p-8 shadow-[0_20px_50px_rgba(34,45,100,0.08)] xl:p-10">
+                      <p className="text-sm font-bold uppercase tracking-[0.32em] text-[#222D64]/42">
+                        Counter
+                      </p>
+                      <p className="mt-6 text-[clamp(5rem,9vw,8.5rem)] font-black leading-none tracking-tight text-[#222D64]">
+                        {getCounterValue(currentTicket)}
+                      </p>
+
+                      <div className="mt-8 grid gap-4 sm:grid-cols-2">
+                        <div className="rounded-[24px] bg-[#f5f7fb] px-5 py-4">
+                          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-[#222D64]/42">
+                            <Building2 className="h-4 w-4" />
+                            Branch
+                          </div>
+                          <p className="mt-3 text-2xl font-black text-[#222D64]">
+                            {formatBranch(currentTicket.branch)}
+                          </p>
+                        </div>
+
+                        <div className="rounded-[24px] bg-[#f5f7fb] px-5 py-4">
+                          <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-[#222D64]/42">
+                            <Clock3 className="h-4 w-4" />
+                            Called At
+                          </div>
+                          <p className="mt-3 text-2xl font-black text-[#222D64]">
+                            {formatTime(new Date(getTicketTimestamp(currentTicket)))}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="flex flex-col items-center justify-center pl-8">
-                  <p className="text-4xl text-slate-300 font-bold uppercase tracking-widest mb-6 drop-shadow-md">Counter</p>
-                  <p className="text-display-md text-blue-400 shadow-blue-500/20">
-                    {currentTicket.counter}
+              </motion.section>
+            ) : (
+              <motion.section
+                key="empty"
+                initial={{ opacity: 0, y: 16 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="w-full"
+              >
+                <div className="rounded-[42px] border border-[#222D64]/10 bg-white/82 px-10 py-16 text-center shadow-[0_26px_72px_rgba(34,45,100,0.12)] backdrop-blur-xl">
+                  <div
+                    className="mx-auto flex h-24 w-24 items-center justify-center rounded-[28px]"
+                    style={{ backgroundColor: 'rgba(111, 206, 181, 0.18)' }}
+                  >
+                    <Ticket className="h-12 w-12 text-[#222D64]" />
+                  </div>
+
+                  <h2 className="mt-8 text-5xl font-black tracking-tight text-[#222D64] xl:text-6xl">
+                    Queue standby
+                  </h2>
+                  <p className="mx-auto mt-5 max-w-3xl text-xl font-medium leading-9 text-[#222D64]/58 xl:text-2xl">
+                    The next called ticket will appear here immediately with its service and counter number.
                   </p>
+
+                  {fetchError && (
+                    <p className="mt-6 text-base font-bold text-amber-700">
+                      Live connection is retrying.
+                    </p>
+                  )}
+                </div>
+              </motion.section>
+            )}
+          </AnimatePresence>
+        </main>
+
+        <footer className="grid items-start gap-4 xl:grid-cols-[260px_1fr]">
+          <div className="rounded-[28px] bg-[#222D64] px-6 py-5 text-white shadow-[0_20px_50px_rgba(34,45,100,0.24)]">
+            <p className="text-xs font-bold uppercase tracking-[0.32em] text-white/55">
+              Recent Calls
+            </p>
+            <p className="mt-3 text-3xl font-black tracking-tight">
+              {previousTickets.length.toString().padStart(2, '0')}
+            </p>
+          </div>
+
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            {previousTickets.length > 0 ? previousTickets.map((ticket) => (
+              <div
+                key={ticket.id}
+                className="rounded-[28px] border border-[#222D64]/10 bg-white/84 px-6 py-5 shadow-[0_16px_36px_rgba(34,45,100,0.08)] backdrop-blur-md"
+              >
+                <p className="text-xs font-bold uppercase tracking-[0.24em] text-[#222D64]/42">
+                  Ticket
+                </p>
+                <p className="mt-3 text-4xl font-black tracking-tight text-[#222D64]">
+                  {ticket.ticketNumber}
+                </p>
+
+                <div className="mt-5 flex items-center justify-between text-sm font-semibold text-[#222D64]/58">
+                  <span>{formatBranch(ticket.branch)}</span>
+                  <span>Counter {getCounterValue(ticket)}</span>
                 </div>
               </div>
-            </motion.div>
-          ) : (
-            <motion.div 
-              key="empty"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              className="flex flex-col items-center text-white/50 bg-black/30 p-16 rounded-[3rem] backdrop-blur-sm border border-white/5"
-            >
-              <h2 className="text-6xl font-black tracking-widest uppercase">Waiting for next ticket</h2>
-              {fetchError && <p className="text-red-400 mt-4 text-xl">Connection issue. Retrying...</p>}
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-
-      {/* History Ribbon Footer */}
-      <div className="relative z-10 w-full bg-black/60 border-t border-white/10 p-8 shadow-inner backdrop-blur-xl">
-        <div className="max-w-screen-2xl mx-auto flex items-center">
-          <h3 className="text-3xl font-black text-slate-400 uppercase tracking-widest mr-12 shrink-0">
-            Previous
-          </h3>
-          
-          <div className="flex gap-6 flex-1 overflow-hidden items-center">
-            <AnimatePresence>
-              {previousTickets.map((ticket) => (
-                <motion.div 
-                  key={ticket.id}
-                  initial={{ opacity: 0, x: 50 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  exit={{ opacity: 0, width: 0, margin: 0, padding: 0 }}
-                  transition={{ type: "spring" }}
-                  className="bg-slate-900/80 rounded-2xl border border-white/10 flex items-center px-8 py-6 shrink-0 shadow-lg"
-                >
-                  <div className="flex flex-col mr-8">
-                    <span className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Ticket</span>
-                    <span className="text-4xl font-black text-white font-variant-tabular">{ticket.ticketNumber}</span>
-                  </div>
-                  <div className="w-px h-16 bg-white/10 mr-8" />
-                  <div className="flex flex-col items-center">
-                    <span className="text-sm font-bold text-slate-400 uppercase tracking-widest mb-1">Counter</span>
-                    <span className="text-4xl font-black text-blue-400 font-variant-tabular">{ticket.counter}</span>
-                  </div>
-                </motion.div>
-              ))}
-              {previousTickets.length === 0 && !currentTicket && (
-                <div className="text-xl text-white/30 font-medium tracking-wide">No recent calls</div>
-              )}
-            </AnimatePresence>
+            )) : (
+              <div className="rounded-[28px] border border-dashed border-[#222D64]/15 bg-white/68 px-6 py-8 text-lg font-semibold text-[#222D64]/48 xl:col-span-4">
+                No recent calls yet.
+              </div>
+            )}
           </div>
-        </div>
+        </footer>
       </div>
     </div>
   );

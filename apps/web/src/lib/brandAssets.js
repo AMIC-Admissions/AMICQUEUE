@@ -1,0 +1,38 @@
+import pb from '@/lib/pocketbaseClient.js';
+import { getAppPath } from '@/lib/runtimeUrls.js';
+
+const isLocalFilesystemPath = (value) => {
+  if (!value) return false;
+  return /^[a-zA-Z]:[\\/]/.test(value) || value.startsWith('\\\\') || value.startsWith('file:') || value.startsWith('blob:');
+};
+
+const normalizePublishedPath = (value) => {
+  if (!value || typeof value !== 'string') return null;
+
+  const trimmed = value.trim();
+  if (!trimmed || isLocalFilesystemPath(trimmed)) return null;
+
+  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
+    return trimmed;
+  }
+
+  if (trimmed.startsWith('assets/')) {
+    return getAppPath(`/${trimmed}`);
+  }
+
+  return getAppPath(trimmed.startsWith('./') ? trimmed.slice(1) : trimmed);
+};
+
+export const resolvePublishedAssetUrl = ({ record, fileField, pathField, fallbackPath }) => {
+  const uploadedFile = record?.[fileField];
+  if (record && typeof uploadedFile === 'string' && uploadedFile.trim()) {
+    return pb.files.getUrl(record, uploadedFile);
+  }
+
+  const publishedPath = normalizePublishedPath(record?.[pathField]);
+  if (publishedPath) {
+    return publishedPath;
+  }
+
+  return getAppPath(fallbackPath);
+};
