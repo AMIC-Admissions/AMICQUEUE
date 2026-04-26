@@ -39,7 +39,7 @@ jobs:
         run: npm run build --prefix apps/web
         env:
           GITHUB_PAGES: true
-          VITE_USE_LOCAL_DB: true
+          VITE_USE_LOCAL_DB: ${{ vars.VITE_USE_LOCAL_DB }}
           VITE_POCKETBASE_URL: ${{ vars.VITE_POCKETBASE_URL }}
           VITE_API_SERVER_URL: ${{ vars.VITE_API_SERVER_URL }}
 

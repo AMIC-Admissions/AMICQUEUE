@@ -10,7 +10,7 @@ Queue management app with a React/Vite frontend, API service, and PocketBase bac
 
 ## GitHub Pages
 
-The deployed GitHub Pages build uses a browser-local database by default (`localStorage`) so the app can run without an external server. Data is saved on the same browser/device only; it is not shared between different devices.
+The deployed GitHub Pages build falls back to a browser-local database (`localStorage`) when no shared backend URL is configured. In that mode, data is saved on the same browser/device only and is not shared between different devices or browsers.
 
 Default local login:
 
@@ -19,5 +19,7 @@ Default local login:
 
 Configure these repository variables before deploying if PocketBase/API are hosted somewhere else:
 
+- `VITE_USE_LOCAL_DB`: optional override. Set to `true` only if you explicitly want browser-local storage even when a backend URL is configured.
 - `VITE_POCKETBASE_URL`: full PocketBase URL, for example `https://example.com/hcgi/platform`
 - `VITE_API_SERVER_URL`: full API URL, for example `https://example.com/hcgi/api`
+- `PUBLIC_APP_URL`: public frontend URL used by PocketBase hooks when sending tracking links
