@@ -19,6 +19,7 @@ import StaffDashboard from '@/pages/StaffDashboard.jsx';
 import CounterSelectPage from '@/pages/CounterSelectPage.jsx';
 import AdminDashboard from '@/pages/AdminDashboard.jsx';
 import AdminUsersPage from '@/pages/AdminUsersPage.jsx';
+import AddStaffPage from '@/pages/AddStaffPage.jsx';
 import ActivityLogPage from '@/pages/ActivityLogPage.jsx';
 import ReportsPage from '@/pages/ReportsPage.jsx';
 import SettingsPage from '@/pages/SettingsPage.jsx';
@@ -118,31 +119,37 @@ function App() {
                   } />
 
                   <Route path="/admin" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requireAdmin={true}>
                       <Layout><AdminDashboard /></Layout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/admin/users" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requireAdmin={true}>
                       <Layout><AdminUsersPage /></Layout>
                     </ProtectedRoute>
                   } />
 
+                  <Route path="/admin/add-staff" element={
+                    <ProtectedRoute requireAdmin={true}>
+                      <Layout><AddStaffPage /></Layout>
+                    </ProtectedRoute>
+                  } />
+
                   <Route path="/admin/reports" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requireAdmin={true}>
                       <Layout><ReportsPage /></Layout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/admin/activity-log" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requireAdmin={true}>
                       <Layout><ActivityLogPage /></Layout>
                     </ProtectedRoute>
                   } />
 
                   <Route path="/admin/settings" element={
-                    <ProtectedRoute>
+                    <ProtectedRoute requireAdmin={true}>
                       <Layout><SettingsPage /></Layout>
                     </ProtectedRoute>
                   } />

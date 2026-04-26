@@ -1,5 +1,4 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -9,21 +8,30 @@ import pb from '@/lib/pocketbaseClient.js';
 import { toast } from 'sonner';
 import { useSyncContext } from '@/contexts/SyncContext.jsx';
 import { Loader2, Copy, CheckCircle2 } from 'lucide-react';
+import { getAppUrl } from '@/lib/runtimeUrls.js';
+import { getCounterOptions } from '@/lib/counterOptions.js';
 
 export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
-  const { refetchUsers } = useSyncContext();
+  const { data: syncData, refetchUsers } = useSyncContext();
   const [loading, setLoading] = useState(false);
   const [successData, setSuccessData] = useState(null);
+  const counterOptions = useMemo(() => getCounterOptions(syncData?.counters), [syncData?.counters]);
   
   const defaultFormData = {
     username: '',
     email: '',
     password: '',
     role: 'staff',
-    counterNumber: '1'
+    counterNumber: ''
   };
 
   const [formData, setFormData] = useState(defaultFormData);
+
+  useEffect(() => {
+    if (!formData.counterNumber && counterOptions.length > 0) {
+      setFormData((prev) => ({ ...prev, counterNumber: String(counterOptions[0]) }));
+    }
+  }, [counterOptions, formData.counterNumber]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -76,7 +84,7 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
 
   const copyCredentials = () => {
     if (!successData) return;
-    const text = `Login URL: ${window.location.origin}/login\nEmail: ${successData.email}\nPassword: ${successData.password}\nRole: ${successData.role}\nCounter: ${successData.counter}`;
+    const text = `Login URL: ${getAppUrl('/login')}\nEmail: ${successData.email}\nPassword: ${successData.password}\nRole: ${successData.role}\nCounter: ${successData.counter}`;
     navigator.clipboard.writeText(text);
     toast.success('Credentials copied to clipboard');
   };
@@ -180,6 +188,7 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
                 >
                   <SelectTrigger className="text-foreground rounded-xl"><SelectValue placeholder="Select role" /></SelectTrigger>
                   <SelectContent className="rounded-xl">
+                    <SelectItem value="admin">Admin</SelectItem>
                     <SelectItem value="staff">Staff</SelectItem>
                     <SelectItem value="operator">Operator</SelectItem>
                   </SelectContent>
@@ -195,7 +204,7 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
                 >
                   <SelectTrigger className="text-foreground rounded-xl"><SelectValue placeholder="Select counter" /></SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    {[1, 2, 3, 4, 5, 6, 7, 8, 9, 10].map(num => (
+                    {counterOptions.map(num => (
                       <SelectItem key={num} value={num.toString()}>
                         Counter {num}
                       </SelectItem>

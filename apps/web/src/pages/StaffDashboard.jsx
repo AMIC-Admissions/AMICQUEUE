@@ -11,6 +11,7 @@ import { toast } from 'sonner';
 import ErrorBoundary from '@/components/ErrorBoundary.jsx';
 import EnableSoundButton from '@/components/EnableSoundButton.jsx';
 import { useVoiceAnnouncement } from '@/hooks/useVoiceAnnouncement.js';
+import { getCounterOptions } from '@/lib/counterOptions.js';
 
 const STATUSES = ['Pending', 'Called', 'Waiting', 'Served', 'Cancelled'];
 
@@ -90,11 +91,7 @@ const StaffDashboardContent = () => {
   }, [syncData?.services, tickets]);
 
   const counterOptions = useMemo(() => {
-    const configured = Array.isArray(syncData?.counters)
-      ? syncData.counters.map((counter) => counter?.counterNumber).filter(Boolean)
-      : [];
-    const fallback = Array.from({ length: 10 }, (_, index) => index + 1);
-    return Array.from(new Set(configured.length ? configured : fallback)).sort((a, b) => a - b);
+    return getCounterOptions(syncData?.counters);
   }, [syncData?.counters]);
 
   const allPending = useMemo(() => {

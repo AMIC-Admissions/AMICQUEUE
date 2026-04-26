@@ -1,11 +1,10 @@
-
 import React from 'react';
 import { Navigate, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { Loader2 } from 'lucide-react';
 
-export default function ProtectedRoute({ children, requireCounter = false }) {
-  const { isAuthenticated, selectedCounter } = useAuth();
+export default function ProtectedRoute({ children, requireCounter = false, requireAdmin = false }) {
+  const { isAuthenticated, isAdmin, selectedCounter } = useAuth();
   const location = useLocation();
 
   if (!isAuthenticated) {
@@ -14,6 +13,10 @@ export default function ProtectedRoute({ children, requireCounter = false }) {
 
   if (requireCounter && !selectedCounter) {
     return <Navigate to="/counter-select" replace />;
+  }
+
+  if (requireAdmin && !isAdmin) {
+    return <Navigate to={selectedCounter ? "/dashboard" : "/counter-select"} replace />;
   }
 
   return children;

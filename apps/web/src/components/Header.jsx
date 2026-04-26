@@ -1,14 +1,13 @@
-
 import React, { useState } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { useLanguage } from '@/contexts/LanguageContext.jsx';
 import { Button } from '@/components/ui/button';
-import { BarChart3, Globe, Menu, X, Monitor, LogOut, Ticket, Search, Navigation, Settings } from 'lucide-react';
+import { BarChart3, Globe, Menu, X, Monitor, LogOut, Ticket, Search, Settings, LayoutDashboard, Users } from 'lucide-react';
 import Logo from '@/components/Logo.jsx';
 
 export default function Header() {
-  const { isAuthenticated, logout } = useAuth();
+  const { isAuthenticated, isAdmin, logout } = useAuth();
   const { language, toggleLanguage, t } = useLanguage();
   const location = useLocation();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -40,11 +39,11 @@ export default function Header() {
           Display Screen
         </Button>
       </Link>
-      {isAuthenticated && (
+      {isAuthenticated && !isAdmin && (
         <>
           <Link to="/dashboard" onClick={closeMenu}>
             <Button variant={location.pathname === '/dashboard' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
-              <Navigation className="w-4 h-4 mx-1.5" />
+              <LayoutDashboard className="w-4 h-4 mx-1.5" />
               Queue Dashboard
             </Button>
           </Link>
@@ -56,6 +55,34 @@ export default function Header() {
           </Link>
           <Link to="/settings" onClick={closeMenu}>
             <Button variant={location.pathname === '/settings' || location.pathname === '/admin/settings' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+              <Settings className="w-4 h-4 mx-1.5" />
+              Settings
+            </Button>
+          </Link>
+        </>
+      )}
+      {isAdmin && (
+        <>
+          <Link to="/admin" onClick={closeMenu}>
+            <Button variant={location.pathname === '/admin' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+              <LayoutDashboard className="w-4 h-4 mx-1.5" />
+              Admin Dashboard
+            </Button>
+          </Link>
+          <Link to="/admin/users" onClick={closeMenu}>
+            <Button variant={location.pathname === '/admin/users' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+              <Users className="w-4 h-4 mx-1.5" />
+              Team & Counters
+            </Button>
+          </Link>
+          <Link to="/admin/reports" onClick={closeMenu}>
+            <Button variant={location.pathname === '/admin/reports' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+              <BarChart3 className="w-4 h-4 mx-1.5" />
+              Reports
+            </Button>
+          </Link>
+          <Link to="/admin/settings" onClick={closeMenu}>
+            <Button variant={location.pathname === '/admin/settings' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
               <Settings className="w-4 h-4 mx-1.5" />
               Settings
             </Button>

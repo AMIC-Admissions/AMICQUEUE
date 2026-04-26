@@ -1,7 +1,7 @@
-
 import { useState, useEffect, useCallback } from 'react';
 import pb from '@/lib/pocketbaseClient';
 import { defaultConfig } from '@/config.js';
+import { normalizeNotificationSettings } from '@/lib/settingsHelpers.js';
 
 export const hexToHSL = (hex) => {
   if (!hex) return null;
@@ -65,13 +65,14 @@ export const useSettings = () => {
         const merged = {
           ...defaultConfig,
           ...remoteSet,
+          notificationSettings: normalizeNotificationSettings(remoteSet.notificationSettings),
           branches: remoteSet.branches || defaultConfig.branches,
           services: remoteSet.services || defaultConfig.services,
           buttonTexts: remoteSet.buttonTexts || defaultConfig.buttonTexts,
           serviceDescriptions: remoteSet.serviceDescriptions || defaultConfig.serviceDescriptions
         };
         setSettings(merged);
-        applySettingsToDOM(remoteSet);
+        applySettingsToDOM(merged);
       }
     } catch (err) {
       console.error('Error fetching settings:', err);

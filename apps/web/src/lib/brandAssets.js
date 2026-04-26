@@ -24,7 +24,11 @@ const normalizePublishedPath = (value) => {
 };
 
 export const resolvePublishedAssetUrl = ({ record, fileField, pathField, fallbackPath }) => {
-  const uploadedFile = record?.[fileField];
+  const rawUploadedFile = record?.[fileField];
+  const uploadedFile = Array.isArray(rawUploadedFile)
+    ? rawUploadedFile.find((item) => typeof item === 'string' && item.trim())
+    : rawUploadedFile;
+
   if (record && typeof uploadedFile === 'string' && uploadedFile.trim()) {
     try {
       const uploadedUrl = pb.files?.getUrl?.(record, uploadedFile);

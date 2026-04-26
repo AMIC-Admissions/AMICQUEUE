@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
 import { Settings, Save, Plus, Trash2, Edit, Palette, Globe, Lock, Loader2, Upload } from 'lucide-react';
@@ -10,9 +9,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { toast } from 'sonner';
-import pb from '@/lib/pocketbaseClient';
+import pb, { isUsingLocalDatabase } from '@/lib/pocketbaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
 import { resolvePublishedAssetUrl } from '@/lib/brandAssets.js';
+import { defaultNotificationSettings, normalizeNotificationSettings } from '@/lib/settingsHelpers.js';
 
 const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
   const reader = new FileReader();
@@ -28,7 +28,17 @@ const loadImage = (source) => new Promise((resolve, reject) => {
   image.src = source;
 });
 
-const optimizeImage = async (file, { maxWidth, maxHeight, outputType, quality = 0.92, fill = '#ffffff' }) => {
+const blobFromCanvas = (canvas, outputType, quality) => new Promise((resolve, reject) => {
+  canvas.toBlob((blob) => {
+    if (blob) {
+      resolve(blob);
+      return;
+    }
+    reject(new Error('Could not export the image'));
+  }, outputType, quality);
+});
+
+const optimizeImage = async (file, { maxWidth, maxHeight, outputType, quality = 0.92, fill = '#ffffff', output = 'dataUrl', filename = 'asset' }) => {
   const source = await readFileAsDataUrl(file);
   const image = await loadImage(source);
 
@@ -53,7 +63,20 @@ const optimizeImage = async (file, { maxWidth, maxHeight, outputType, quality = 
   }
 
   context.drawImage(image, 0, 0, width, height);
+
+  if (output === 'file') {
+    const blob = await blobFromCanvas(canvas, outputType, quality);
+    return new File([blob], filename, { type: outputType });
+  }
+
   return canvas.toDataURL(outputType, quality);
+};
+
+const getUploadedFileName = (value) => {
+  if (Array.isArray(value)) {
+    return value.find((item) => typeof item === 'string' && item.trim()) || '';
+  }
+  return typeof value === 'string' ? value : '';
 };
 
 const SettingsPage = () => {
@@ -67,18 +90,26 @@ const SettingsPage = () => {
     newPassword: '',
     confirmPassword: ''
   });
+  const [assetDrafts, setAssetDrafts] = useState({
+    logoFile: null,
+    backgroundFile: null,
+    logoPreviewUrl: '',
+    backgroundPreviewUrl: '',
+    clearLogo: false,
+    clearBackground: false
+  });
   
   const [settings, setSettings] = useState({
     id: '',
+    collectionId: '',
+    collectionName: 'settings',
     systemTitle: '',
+    logoImage: '',
+    backgroundImage: '',
     logoPath: '',
     backgroundImagePath: '',
     colorBackground: 'light',
-    notificationSettings: {
-      soundEnabled: true,
-      autoLogout: 30,
-      defaultLanguage: 'en'
-    }
+    notificationSettings: defaultNotificationSettings
   });
 
   const fetchData = async () => {
@@ -92,13 +123,25 @@ const SettingsPage = () => {
         const s = settingsRes.items[0];
         setSettings({
           id: s.id,
+          collectionId: s.collectionId || '',
+          collectionName: s.collectionName || 'settings',
           systemTitle: s.systemTitle || '',
+          logoImage: s.logoImage || '',
+          backgroundImage: s.backgroundImage || '',
           logoPath: s.logoPath || '',
           backgroundImagePath: s.backgroundImagePath || '',
           colorBackground: s.colorBackground || 'light',
-          notificationSettings: s.notificationSettings || { soundEnabled: true, autoLogout: 30, defaultLanguage: 'en' }
+          notificationSettings: normalizeNotificationSettings(s.notificationSettings)
         });
       }
+      setAssetDrafts({
+        logoFile: null,
+        backgroundFile: null,
+        logoPreviewUrl: '',
+        backgroundPreviewUrl: '',
+        clearLogo: false,
+        clearBackground: false
+      });
       setServices(servicesRes);
     } catch (error) {
       console.error('Error fetching settings:', error);
@@ -112,27 +155,91 @@ const SettingsPage = () => {
     fetchData();
   }, []);
 
+  useEffect(() => () => {
+    if (assetDrafts.logoPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(assetDrafts.logoPreviewUrl);
+    }
+    if (assetDrafts.backgroundPreviewUrl.startsWith('blob:')) {
+      URL.revokeObjectURL(assetDrafts.backgroundPreviewUrl);
+    }
+  }, [assetDrafts.backgroundPreviewUrl, assetDrafts.logoPreviewUrl]);
+
   const handleSaveSettings = async () => {
     setSaving(true);
     try {
-      if (settings.id) {
-        await pb.collection('settings').update(settings.id, {
+      let savedRecord;
+
+      if (isUsingLocalDatabase) {
+        const payload = {
           systemTitle: settings.systemTitle,
           logoPath: settings.logoPath,
           backgroundImagePath: settings.backgroundImagePath,
           colorBackground: settings.colorBackground,
           notificationSettings: settings.notificationSettings
-        }, { $autoCancel: false });
+        };
+
+        savedRecord = settings.id
+          ? await pb.collection('settings').update(settings.id, payload, { $autoCancel: false })
+          : await pb.collection('settings').create(payload, { $autoCancel: false });
       } else {
-        const created = await pb.collection('settings').create({
-          systemTitle: settings.systemTitle,
-          logoPath: settings.logoPath,
-          backgroundImagePath: settings.backgroundImagePath,
-          colorBackground: settings.colorBackground,
-          notificationSettings: settings.notificationSettings
-        }, { $autoCancel: false });
-        setSettings(prev => ({ ...prev, id: created.id }));
+        const payload = new FormData();
+        payload.append('systemTitle', settings.systemTitle || '');
+        payload.append('colorBackground', settings.colorBackground || 'light');
+        payload.append('notificationSettings', JSON.stringify(settings.notificationSettings || {}));
+
+        if (assetDrafts.logoFile) {
+          payload.append('logoImage', assetDrafts.logoFile);
+        } else if (assetDrafts.clearLogo) {
+          const existingLogo = getUploadedFileName(settings.logoImage);
+          if (existingLogo) {
+            payload.append('logoImage-', existingLogo);
+          }
+        }
+
+        if (assetDrafts.backgroundFile) {
+          payload.append('backgroundImage', assetDrafts.backgroundFile);
+        } else if (assetDrafts.clearBackground) {
+          const existingBackground = getUploadedFileName(settings.backgroundImage);
+          if (existingBackground) {
+            payload.append('backgroundImage-', existingBackground);
+          }
+        }
+
+        savedRecord = settings.id
+          ? await pb.collection('settings').update(settings.id, payload, { $autoCancel: false })
+          : await pb.collection('settings').create(payload, { $autoCancel: false });
       }
+
+      setSettings((prev) => ({
+        ...prev,
+        id: savedRecord.id,
+        collectionId: savedRecord.collectionId || prev.collectionId || '',
+        collectionName: savedRecord.collectionName || prev.collectionName || 'settings',
+        systemTitle: savedRecord.systemTitle || '',
+        logoImage: savedRecord.logoImage || '',
+        backgroundImage: savedRecord.backgroundImage || '',
+        logoPath: isUsingLocalDatabase ? (savedRecord.logoPath || '') : '',
+        backgroundImagePath: isUsingLocalDatabase ? (savedRecord.backgroundImagePath || '') : '',
+        colorBackground: savedRecord.colorBackground || 'light',
+        notificationSettings: normalizeNotificationSettings(savedRecord.notificationSettings ?? prev.notificationSettings)
+      }));
+
+      setAssetDrafts((prev) => {
+        if (prev.logoPreviewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(prev.logoPreviewUrl);
+        }
+        if (prev.backgroundPreviewUrl.startsWith('blob:')) {
+          URL.revokeObjectURL(prev.backgroundPreviewUrl);
+        }
+        return {
+          logoFile: null,
+          backgroundFile: null,
+          logoPreviewUrl: '',
+          backgroundPreviewUrl: '',
+          clearLogo: false,
+          clearBackground: false
+        };
+      });
       
       await pb.collection('activity_logs').create({
         action: 'settings_updated',
@@ -141,8 +248,9 @@ const SettingsPage = () => {
         description: 'Updated system settings'
       }, { $autoCancel: false }).catch(() => {});
 
-      toast.success('Settings saved successfully');
+      toast.success(isUsingLocalDatabase ? 'Settings saved on this device' : 'Settings saved for all devices');
     } catch (error) {
+      console.error('Settings save error:', error);
       toast.error('Failed to save settings');
     } finally {
       setSaving(false);
@@ -212,16 +320,47 @@ const SettingsPage = () => {
     }
 
     try {
-      const processed = await optimizeImage(file, field === 'logoPath'
-        ? { maxWidth: 1200, maxHeight: 360, outputType: 'image/png' }
-        : { maxWidth: 1920, maxHeight: 1080, outputType: 'image/jpeg', quality: 0.82, fill: '#ffffff' });
+      if (isUsingLocalDatabase) {
+        const processed = await optimizeImage(file, field === 'logoPath'
+          ? { maxWidth: 1200, maxHeight: 360, outputType: 'image/png' }
+          : { maxWidth: 1920, maxHeight: 1080, outputType: 'image/jpeg', quality: 0.82, fill: '#ffffff' });
 
-      if (processed.length > 3_000_000) {
-        toast.error('Image is too large after processing. Use a smaller file.');
-        return;
+        if (processed.length > 3000000) {
+          toast.error('Image is too large after processing. Use a smaller file.');
+          return;
+        }
+
+        setSettings((prev) => ({ ...prev, [field]: processed }));
+      } else {
+        const isLogo = field === 'logoPath';
+        const processedFile = await optimizeImage(file, isLogo
+          ? { maxWidth: 1200, maxHeight: 360, outputType: 'image/png', output: 'file', filename: 'logo.png' }
+          : { maxWidth: 1920, maxHeight: 1080, outputType: 'image/jpeg', quality: 0.82, fill: '#ffffff', output: 'file', filename: 'background.jpg' });
+
+        if (processedFile.size > 3000000) {
+          toast.error('Image is too large after processing. Use a smaller file.');
+          return;
+        }
+
+        const previewUrl = URL.createObjectURL(processedFile);
+        setAssetDrafts((prev) => {
+          const previewField = isLogo ? 'logoPreviewUrl' : 'backgroundPreviewUrl';
+          const fileField = isLogo ? 'logoFile' : 'backgroundFile';
+          const clearField = isLogo ? 'clearLogo' : 'clearBackground';
+
+          if (prev[previewField]?.startsWith?.('blob:')) {
+            URL.revokeObjectURL(prev[previewField]);
+          }
+
+          return {
+            ...prev,
+            [fileField]: processedFile,
+            [previewField]: previewUrl,
+            [clearField]: false
+          };
+        });
       }
 
-      setSettings((prev) => ({ ...prev, [field]: processed }));
       toast.success(field === 'logoPath' ? 'Logo ready to save' : 'Background ready to save');
     } catch (error) {
       console.error('Image upload error:', error);
@@ -230,22 +369,47 @@ const SettingsPage = () => {
   };
 
   const clearAsset = (field) => {
-    setSettings((prev) => ({ ...prev, [field]: '' }));
+    if (isUsingLocalDatabase) {
+      setSettings((prev) => ({ ...prev, [field]: '' }));
+      return;
+    }
+
+    const isLogo = field === 'logoPath';
+    setAssetDrafts((prev) => {
+      const previewField = isLogo ? 'logoPreviewUrl' : 'backgroundPreviewUrl';
+      const fileField = isLogo ? 'logoFile' : 'backgroundFile';
+      const clearField = isLogo ? 'clearLogo' : 'clearBackground';
+
+      if (prev[previewField]?.startsWith?.('blob:')) {
+        URL.revokeObjectURL(prev[previewField]);
+      }
+
+      return {
+        ...prev,
+        [fileField]: null,
+        [previewField]: '',
+        [clearField]: true
+      };
+    });
   };
 
-  const logoPreviewUrl = resolvePublishedAssetUrl({
-    record: settings,
-    fileField: 'logoImage',
-    pathField: 'logoPath',
-    fallbackPath: '/assets/amic-logo.png'
-  });
+  const logoPreviewUrl = assetDrafts.clearLogo
+    ? resolvePublishedAssetUrl({ record: null, fileField: 'logoImage', pathField: 'logoPath', fallbackPath: '/assets/amic-logo.png' })
+    : assetDrafts.logoPreviewUrl || resolvePublishedAssetUrl({
+      record: settings,
+      fileField: 'logoImage',
+      pathField: 'logoPath',
+      fallbackPath: '/assets/amic-logo.png'
+    });
 
-  const backgroundPreviewUrl = resolvePublishedAssetUrl({
-    record: settings,
-    fileField: 'backgroundImage',
-    pathField: 'backgroundImagePath',
-    fallbackPath: '/assets/amic-site-background.png'
-  });
+  const backgroundPreviewUrl = assetDrafts.clearBackground
+    ? resolvePublishedAssetUrl({ record: null, fileField: 'backgroundImage', pathField: 'backgroundImagePath', fallbackPath: '/assets/amic-site-background.png' })
+    : assetDrafts.backgroundPreviewUrl || resolvePublishedAssetUrl({
+      record: settings,
+      fileField: 'backgroundImage',
+      pathField: 'backgroundImagePath',
+      fallbackPath: '/assets/amic-site-background.png'
+    });
 
   if (loading) {
     return (
@@ -435,7 +599,11 @@ const SettingsPage = () => {
                   <div className="mt-4 flex items-start justify-between gap-4">
                     <div>
                       <p className="font-bold mb-1">Upload Logo</p>
-                      <p className="text-xs text-muted-foreground">PNG or JPG, optimized for this browser-based site</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isUsingLocalDatabase
+                          ? 'PNG or JPG, optimized for this browser-based site'
+                          : 'PNG or JPG, stored in the shared system for every device'}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" className="relative rounded-xl">
@@ -462,7 +630,11 @@ const SettingsPage = () => {
                   <div className="mt-4 flex items-start justify-between gap-4">
                     <div>
                       <p className="font-bold mb-1">Upload Background</p>
-                      <p className="text-xs text-muted-foreground">Automatically resized for GitHub Pages local storage</p>
+                      <p className="text-xs text-muted-foreground">
+                        {isUsingLocalDatabase
+                          ? 'Automatically resized for GitHub Pages local storage'
+                          : 'Automatically resized and uploaded to the shared AMIC server'}
+                      </p>
                     </div>
                     <div className="flex gap-2">
                       <Button type="button" variant="outline" className="relative rounded-xl">
@@ -484,7 +656,9 @@ const SettingsPage = () => {
               </div>
 
               <p className="text-xs text-muted-foreground pt-2">
-                In the GitHub Pages version, logo and background are saved inside this browser so they stay available on this device without a separate server.
+                {isUsingLocalDatabase
+                  ? 'In the local browser mode, logo and background stay only on this device.'
+                  : 'Brand updates are saved to the shared PocketBase server, so the logo and background appear for all users after saving.'}
               </p>
             </div>
           </div>

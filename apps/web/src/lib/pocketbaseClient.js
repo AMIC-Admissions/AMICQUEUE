@@ -18,3 +18,4 @@ pocketbaseClient.autoCancellation?.(false);
 export default pocketbaseClient;
 
 export { pocketbaseClient };
+export const isUsingLocalDatabase = shouldUseLocalDatabase;
