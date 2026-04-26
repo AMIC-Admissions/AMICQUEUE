@@ -1,3 +1,4 @@
+
 import React, { useEffect, useMemo, useState } from 'react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
@@ -10,6 +11,24 @@ import { useSyncContext } from '@/contexts/SyncContext.jsx';
 import { Loader2, Copy, CheckCircle2 } from 'lucide-react';
 import { getAppUrl } from '@/lib/runtimeUrls.js';
 import { getCounterOptions } from '@/lib/counterOptions.js';
+
+const formatRecordError = (error) => {
+  const responseMessage = error?.response?.message || error?.message || 'Unknown error';
+  const details = error?.response?.data || error?.data;
+
+  if (!details || typeof details !== 'object' || Object.keys(details).length === 0) {
+    return responseMessage;
+  }
+
+  const fieldMessages = Object.entries(details)
+    .map(([field, value]) => {
+      const message = value?.message || value?.code || String(value || '').trim();
+      return message ? `${field}: ${message}` : field;
+    })
+    .filter(Boolean);
+
+  return fieldMessages.length > 0 ? `${responseMessage} (${fieldMessages.join(' | ')})` : responseMessage;
+};
 
 export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
   const { data: syncData, refetchUsers } = useSyncContext();
@@ -35,7 +54,7 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-    
+
     if (!formData.username?.trim() || !formData.email?.trim() || !formData.password || !formData.role || !formData.counterNumber) {
       toast.error('All fields are required');
       return;
@@ -55,9 +74,11 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
         password: formData.password,
         passwordConfirm: formData.password,
         role: formData.role,
+        counter: parseInt(formData.counterNumber, 10),
         counterNumber: parseInt(formData.counterNumber, 10),
         emailVisibility: true,
-        verified: true,
+        verified: false,
+        status: 'active',
         name: formData.username.trim()
       };
 
@@ -76,7 +97,7 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
       
     } catch (err) {
       console.error('Staff creation error:', err);
-      toast.error(err?.response?.message || err?.message || 'Failed to create staff member');
+      toast.error(formatRecordError(err));
     } finally {
       setLoading(false);
     }
