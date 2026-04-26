@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Helmet } from 'react-helmet';
-import { Settings, Save, Plus, Trash2, Edit, Image as ImageIcon, Palette, Globe, Lock, Loader2 } from 'lucide-react';
+import { Settings, Save, Plus, Trash2, Edit, Palette, Globe, Lock, Loader2, Upload } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +12,49 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { toast } from 'sonner';
 import pb from '@/lib/pocketbaseClient';
 import { useAuth } from '@/contexts/AuthContext.jsx';
+import { resolvePublishedAssetUrl } from '@/lib/brandAssets.js';
+
+const readFileAsDataUrl = (file) => new Promise((resolve, reject) => {
+  const reader = new FileReader();
+  reader.onload = () => resolve(reader.result);
+  reader.onerror = () => reject(new Error('Could not read file'));
+  reader.readAsDataURL(file);
+});
+
+const loadImage = (source) => new Promise((resolve, reject) => {
+  const image = new Image();
+  image.onload = () => resolve(image);
+  image.onerror = () => reject(new Error('Could not load image'));
+  image.src = source;
+});
+
+const optimizeImage = async (file, { maxWidth, maxHeight, outputType, quality = 0.92, fill = '#ffffff' }) => {
+  const source = await readFileAsDataUrl(file);
+  const image = await loadImage(source);
+
+  const scale = Math.min(1, maxWidth / image.width, maxHeight / image.height);
+  const width = Math.max(1, Math.round(image.width * scale));
+  const height = Math.max(1, Math.round(image.height * scale));
+
+  const canvas = document.createElement('canvas');
+  canvas.width = width;
+  canvas.height = height;
+
+  const context = canvas.getContext('2d');
+  if (!context) {
+    throw new Error('Canvas is not supported in this browser');
+  }
+
+  if (outputType === 'image/jpeg') {
+    context.fillStyle = fill;
+    context.fillRect(0, 0, width, height);
+  } else {
+    context.clearRect(0, 0, width, height);
+  }
+
+  context.drawImage(image, 0, 0, width, height);
+  return canvas.toDataURL(outputType, quality);
+};
 
 const SettingsPage = () => {
   const { currentUser } = useAuth();
@@ -28,6 +71,8 @@ const SettingsPage = () => {
   const [settings, setSettings] = useState({
     id: '',
     systemTitle: '',
+    logoPath: '',
+    backgroundImagePath: '',
     colorBackground: 'light',
     notificationSettings: {
       soundEnabled: true,
@@ -48,6 +93,8 @@ const SettingsPage = () => {
         setSettings({
           id: s.id,
           systemTitle: s.systemTitle || '',
+          logoPath: s.logoPath || '',
+          backgroundImagePath: s.backgroundImagePath || '',
           colorBackground: s.colorBackground || 'light',
           notificationSettings: s.notificationSettings || { soundEnabled: true, autoLogout: 30, defaultLanguage: 'en' }
         });
@@ -71,12 +118,16 @@ const SettingsPage = () => {
       if (settings.id) {
         await pb.collection('settings').update(settings.id, {
           systemTitle: settings.systemTitle,
+          logoPath: settings.logoPath,
+          backgroundImagePath: settings.backgroundImagePath,
           colorBackground: settings.colorBackground,
           notificationSettings: settings.notificationSettings
         }, { $autoCancel: false });
       } else {
         const created = await pb.collection('settings').create({
           systemTitle: settings.systemTitle,
+          logoPath: settings.logoPath,
+          backgroundImagePath: settings.backgroundImagePath,
           colorBackground: settings.colorBackground,
           notificationSettings: settings.notificationSettings
         }, { $autoCancel: false });
@@ -152,6 +203,49 @@ const SettingsPage = () => {
       setPasswordSaving(false);
     }
   };
+
+  const handleAssetUpload = async (field, file) => {
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please choose an image file');
+      return;
+    }
+
+    try {
+      const processed = await optimizeImage(file, field === 'logoPath'
+        ? { maxWidth: 1200, maxHeight: 360, outputType: 'image/png' }
+        : { maxWidth: 1920, maxHeight: 1080, outputType: 'image/jpeg', quality: 0.82, fill: '#ffffff' });
+
+      if (processed.length > 3_000_000) {
+        toast.error('Image is too large after processing. Use a smaller file.');
+        return;
+      }
+
+      setSettings((prev) => ({ ...prev, [field]: processed }));
+      toast.success(field === 'logoPath' ? 'Logo ready to save' : 'Background ready to save');
+    } catch (error) {
+      console.error('Image upload error:', error);
+      toast.error('Could not process the selected image');
+    }
+  };
+
+  const clearAsset = (field) => {
+    setSettings((prev) => ({ ...prev, [field]: '' }));
+  };
+
+  const logoPreviewUrl = resolvePublishedAssetUrl({
+    record: settings,
+    fileField: 'logoImage',
+    pathField: 'logoPath',
+    fallbackPath: '/assets/amic-logo.png'
+  });
+
+  const backgroundPreviewUrl = resolvePublishedAssetUrl({
+    record: settings,
+    fileField: 'backgroundImage',
+    pathField: 'backgroundImagePath',
+    fallbackPath: '/assets/amic-site-background.png'
+  });
 
   if (loading) {
     return (
@@ -332,22 +426,66 @@ const SettingsPage = () => {
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4">
-                <div className="border-2 border-dashed border-border rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:bg-muted/30 transition-colors cursor-pointer">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                    <ImageIcon className="w-6 h-6 text-primary" />
+                <div className="rounded-2xl border border-border/60 bg-muted/20 p-5">
+                  <div className="overflow-hidden rounded-2xl border border-border/50 bg-white">
+                    <div className="flex min-h-[180px] items-center justify-center bg-[radial-gradient(circle_at_top_right,rgba(111,206,181,0.15),transparent_40%),linear-gradient(180deg,#ffffff,#f7f9fc)] p-6">
+                      <img src={logoPreviewUrl} alt="Current logo" className="max-h-24 w-auto max-w-full object-contain" />
+                    </div>
                   </div>
-                  <p className="font-bold mb-1">Upload Logo</p>
-                  <p className="text-xs text-muted-foreground">PNG, JPG up to 2MB</p>
+                  <div className="mt-4 flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-bold mb-1">Upload Logo</p>
+                      <p className="text-xs text-muted-foreground">PNG or JPG, optimized for this browser-based site</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" className="relative rounded-xl">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Choose
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="absolute inset-0 cursor-pointer opacity-0"
+                          onChange={(event) => handleAssetUpload('logoPath', event.target.files?.[0])}
+                        />
+                      </Button>
+                      <Button type="button" variant="ghost" className="rounded-xl" onClick={() => clearAsset('logoPath')}>
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-                
-                <div className="border-2 border-dashed border-border rounded-2xl p-8 flex flex-col items-center justify-center text-center hover:bg-muted/30 transition-colors cursor-pointer">
-                  <div className="w-12 h-12 bg-primary/10 rounded-full flex items-center justify-center mb-4">
-                    <ImageIcon className="w-6 h-6 text-primary" />
+
+                <div className="rounded-2xl border border-border/60 bg-muted/20 p-5">
+                  <div className="overflow-hidden rounded-2xl border border-border/50 bg-white">
+                    <div className="aspect-[16/9] w-full bg-cover bg-center" style={{ backgroundImage: `url(${backgroundPreviewUrl})` }} />
                   </div>
-                  <p className="font-bold mb-1">Upload Background</p>
-                  <p className="text-xs text-muted-foreground">1920x1080 recommended</p>
+                  <div className="mt-4 flex items-start justify-between gap-4">
+                    <div>
+                      <p className="font-bold mb-1">Upload Background</p>
+                      <p className="text-xs text-muted-foreground">Automatically resized for GitHub Pages local storage</p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Button type="button" variant="outline" className="relative rounded-xl">
+                        <Upload className="w-4 h-4 mr-2" />
+                        Choose
+                        <input
+                          type="file"
+                          accept="image/png,image/jpeg,image/webp"
+                          className="absolute inset-0 cursor-pointer opacity-0"
+                          onChange={(event) => handleAssetUpload('backgroundImagePath', event.target.files?.[0])}
+                        />
+                      </Button>
+                      <Button type="button" variant="ghost" className="rounded-xl" onClick={() => clearAsset('backgroundImagePath')}>
+                        Clear
+                      </Button>
+                    </div>
+                  </div>
                 </div>
               </div>
+
+              <p className="text-xs text-muted-foreground pt-2">
+                In the GitHub Pages version, logo and background are saved inside this browser so they stay available on this device without a separate server.
+              </p>
             </div>
           </div>
         </TabsContent>

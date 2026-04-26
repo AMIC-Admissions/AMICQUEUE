@@ -300,127 +300,187 @@ const TicketCreationPageContent = () => {
             animate={{ opacity: 1, scale: 1 }}
             className="print-ticket-card overflow-hidden rounded-[2rem] border border-[#222D64]/10 bg-white text-left shadow-[0_28px_70px_rgba(34,45,100,0.12)]"
           >
-            <div className="border-b border-[#222D64]/10 bg-[linear-gradient(135deg,rgba(34,45,100,0.04),rgba(111,206,181,0.12))] px-8 py-8 sm:px-10">
-              <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
-                <div className="min-w-0">
-                  <div className="inline-flex items-center rounded-full bg-[#6FCEB5]/20 px-4 py-2 text-xs font-black uppercase tracking-[0.3em] text-[#1b6957] sm:text-sm">
-                    Ticket Ready
+            <div className="screen-only">
+              <div className="border-b border-[#222D64]/10 bg-[linear-gradient(135deg,rgba(34,45,100,0.04),rgba(111,206,181,0.12))] px-8 py-8 sm:px-10">
+                <div className="flex flex-col gap-8 lg:flex-row lg:items-start lg:justify-between">
+                  <div className="min-w-0">
+                    <div className="inline-flex items-center rounded-full bg-[#6FCEB5]/20 px-4 py-2 text-xs font-black uppercase tracking-[0.3em] text-[#1b6957] sm:text-sm">
+                      Ticket Ready
+                    </div>
+                    <div className="mt-5 rounded-[28px] border border-[#222D64]/10 bg-white/90 px-5 py-4 shadow-sm">
+                      <img
+                        src={logoUrl}
+                        alt="AMIC group logo"
+                        className="h-14 w-auto max-w-full object-contain sm:h-16"
+                        onError={(event) => {
+                          if (event.currentTarget.src !== fallbackLogoUrl) {
+                            event.currentTarget.src = fallbackLogoUrl;
+                          }
+                        }}
+                      />
+                    </div>
+                    <h2 className="mt-6 text-3xl font-black tracking-tight text-[#222D64] sm:text-4xl">
+                      Your queue ticket is ready
+                    </h2>
+                    <p className="mt-3 max-w-2xl text-base font-medium leading-7 text-[#222D64]/65 sm:text-lg">
+                      This page now shows the ticket directly after creation, with a clean print layout that includes the logo and a scannable code.
+                    </p>
                   </div>
-                  <div className="mt-5 rounded-[28px] border border-[#222D64]/10 bg-white/90 px-5 py-4 shadow-sm">
-                    <img
-                      src={logoUrl}
-                      alt="AMIC group logo"
-                      className="h-14 w-auto max-w-full object-contain sm:h-16"
-                      onError={(event) => {
-                        if (event.currentTarget.src !== fallbackLogoUrl) {
-                          event.currentTarget.src = fallbackLogoUrl;
-                        }
-                      }}
-                    />
+
+                  <div className="w-full max-w-xs rounded-[28px] border border-[#222D64]/10 bg-white/95 p-5 text-center shadow-sm">
+                    <div className="inline-flex items-center gap-2 rounded-full bg-[#222D64]/6 px-3 py-2 text-xs font-black uppercase tracking-[0.24em] text-[#222D64]/55">
+                      <ScanLine className="h-4 w-4" />
+                      Track Online
+                    </div>
+                    <div className="mt-4 flex justify-center">
+                      <QRCodeSVG value={trackingUrl} size={156} level="H" includeMargin={true} className="rounded-2xl bg-white p-3 shadow-sm" />
+                    </div>
+                    <Link to={`/track?ticket=${createdTicket?.ticketNumber}`} className="mt-4 block break-all rounded-2xl bg-[#222D64]/5 px-4 py-3 text-sm font-bold text-[#222D64] hover:bg-[#222D64]/10">
+                      {trackingUrl}
+                    </Link>
                   </div>
-                  <h2 className="mt-6 text-3xl font-black tracking-tight text-[#222D64] sm:text-4xl">
-                    Your queue ticket is ready
-                  </h2>
-                  <p className="mt-3 max-w-2xl text-base font-medium leading-7 text-[#222D64]/65 sm:text-lg">
-                    This page now shows the ticket directly after creation, with a clean print layout that includes the logo and a scannable code.
+                </div>
+              </div>
+
+              <div className="grid gap-6 px-8 py-8 sm:px-10 lg:grid-cols-[1.1fr_0.9fr]">
+                <div className="rounded-[32px] bg-[#222D64] p-8 text-white shadow-[0_24px_60px_rgba(34,45,100,0.2)]">
+                  <p className="text-sm font-black uppercase tracking-[0.34em] text-white/60">
+                    {t.ticket.yourNumber}
                   </p>
+                  <div className="mt-5 text-[64px] font-black leading-none tracking-tight sm:text-[88px]">
+                    {createdTicket?.ticketNumber}
+                  </div>
+
+                  <div className="mt-8 grid gap-3 sm:grid-cols-2">
+                    <div className="rounded-[24px] bg-white/10 px-5 py-4">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-white/55">
+                        <Building2 className="h-4 w-4" />
+                        Branch
+                      </div>
+                      <p className="mt-3 text-2xl font-black">
+                        {getBranchLabel(createdTicket?.branch)}
+                      </p>
+                    </div>
+                    <div className="rounded-[24px] bg-white/10 px-5 py-4">
+                      <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-white/55">
+                        <Clock3 className="h-4 w-4" />
+                        Issued
+                      </div>
+                      <p className="mt-3 text-lg font-bold leading-7 text-white">
+                        {createdAtLabel}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="mt-8 rounded-[28px] bg-white px-4 py-5 text-center shadow-inner">
+                    <TicketBarcode value={createdTicket?.ticketNumber} />
+                  </div>
                 </div>
 
-                <div className="w-full max-w-xs rounded-[28px] border border-[#222D64]/10 bg-white/95 p-5 text-center shadow-sm">
-                  <div className="inline-flex items-center gap-2 rounded-full bg-[#222D64]/6 px-3 py-2 text-xs font-black uppercase tracking-[0.24em] text-[#222D64]/55">
-                    <ScanLine className="h-4 w-4" />
-                    Track Online
+                <div className="flex flex-col gap-5">
+                  <div className="rounded-[28px] border border-[#222D64]/10 bg-[#f8fbfd] p-6 shadow-sm">
+                    <p className="text-sm font-black uppercase tracking-[0.32em] text-[#222D64]/45">
+                      Ticket Details
+                    </p>
+                    <dl className="mt-5 space-y-4">
+                      <div className="flex items-start justify-between gap-4 border-b border-[#222D64]/8 pb-4">
+                        <dt className="text-sm font-bold text-[#222D64]/55">Parent Name</dt>
+                        <dd className="text-right text-base font-black text-[#222D64]">{createdTicket?.parentName}</dd>
+                      </div>
+                      <div className="flex items-start justify-between gap-4 border-b border-[#222D64]/8 pb-4">
+                        <dt className="text-sm font-bold text-[#222D64]/55">Service</dt>
+                        <dd className="text-right text-base font-black text-[#222D64]">{t.services[createdTicket?.service] || createdTicket?.service}</dd>
+                      </div>
+                      <div className="flex items-start justify-between gap-4">
+                        <dt className="text-sm font-bold text-[#222D64]/55">Mobile</dt>
+                        <dd className="text-right text-base font-black text-[#222D64]" dir="ltr">{createdTicket?.mobileNumber}</dd>
+                      </div>
+                    </dl>
                   </div>
-                  <div className="mt-4 flex justify-center">
-                    <QRCodeSVG value={trackingUrl} size={156} level="H" includeMargin={true} className="rounded-2xl bg-white p-3 shadow-sm" />
+
+                  <div className="rounded-[28px] border border-dashed border-[#222D64]/20 bg-white px-6 py-5">
+                    <p className="text-base font-bold text-[#222D64]/70">
+                      Keep this ticket for tracking and counter announcements.
+                    </p>
                   </div>
-                  <Link to={`/track?ticket=${createdTicket?.ticketNumber}`} className="mt-4 block break-all rounded-2xl bg-[#222D64]/5 px-4 py-3 text-sm font-bold text-[#222D64] hover:bg-[#222D64]/10">
-                    {trackingUrl}
-                  </Link>
+                </div>
+              </div>
+
+              <div className="no-print border-t border-[#222D64]/10 px-8 py-6 sm:px-10">
+                <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+                  <Button className="h-14 font-bold shadow-md interactive-element rounded-2xl w-full bg-[#25D366] hover:bg-[#1DA851] text-white" onClick={openWhatsAppManual}>
+                    <MessageCircle className="w-5 h-5 mx-2" />
+                    Send via WhatsApp
+                  </Button>
+
+                  <Button variant="outline" className="h-14 font-bold interactive-element rounded-2xl w-full bg-background hover:bg-muted border-[#222D64]/10" onClick={handlePrint}>
+                    <Printer className="w-5 h-5 mx-2" />
+                    Print Ticket
+                  </Button>
+
+                  <Button variant="ghost" className="h-14 font-bold text-muted-foreground hover:text-foreground interactive-element w-full rounded-2xl" onClick={handleCreateAnother}>
+                    <Plus className="w-5 h-5 mx-2" />
+                    Create Another
+                  </Button>
                 </div>
               </div>
             </div>
 
-            <div className="grid gap-6 px-8 py-8 sm:px-10 lg:grid-cols-[1.1fr_0.9fr]">
-              <div className="rounded-[32px] bg-[#222D64] p-8 text-white shadow-[0_24px_60px_rgba(34,45,100,0.2)]">
-                <p className="text-sm font-black uppercase tracking-[0.34em] text-white/60">
-                  {t.ticket.yourNumber}
-                </p>
-                <div className="mt-5 text-[64px] font-black leading-none tracking-tight sm:text-[88px]">
-                  {createdTicket?.ticketNumber}
-                </div>
-
-                <div className="mt-8 grid gap-3 sm:grid-cols-2">
-                  <div className="rounded-[24px] bg-white/10 px-5 py-4">
-                    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-white/55">
-                      <Building2 className="h-4 w-4" />
-                      Branch
-                    </div>
-                    <p className="mt-3 text-2xl font-black">
-                      {getBranchLabel(createdTicket?.branch)}
-                    </p>
-                  </div>
-                  <div className="rounded-[24px] bg-white/10 px-5 py-4">
-                    <div className="flex items-center gap-2 text-xs font-black uppercase tracking-[0.22em] text-white/55">
-                      <Clock3 className="h-4 w-4" />
-                      Issued
-                    </div>
-                    <p className="mt-3 text-lg font-bold leading-7 text-white">
-                      {createdAtLabel}
-                    </p>
+            <div className="print-only px-8 py-8 sm:px-10">
+              <div className="mx-auto max-w-[760px] rounded-[28px] border border-[#d8e1ee] bg-white p-8">
+                <div className="flex items-center justify-between gap-6 border-b border-[#e7edf5] pb-6">
+                  <img
+                    src={logoUrl}
+                    alt="AMIC group logo"
+                    className="h-16 w-auto max-w-[320px] object-contain"
+                    onError={(event) => {
+                      if (event.currentTarget.src !== fallbackLogoUrl) {
+                        event.currentTarget.src = fallbackLogoUrl;
+                      }
+                    }}
+                  />
+                  <div className="text-right">
+                    <p className="text-xs font-black uppercase tracking-[0.28em] text-[#222D64]/45">Queue Ticket</p>
+                    <p className="mt-2 text-sm font-bold text-[#222D64]/65">{createdAtLabel}</p>
                   </div>
                 </div>
 
-                <div className="mt-8 rounded-[28px] bg-white px-4 py-5 text-center shadow-inner">
+                <div className="pt-8 text-center">
+                  <p className="text-sm font-black uppercase tracking-[0.32em] text-[#222D64]/45">{t.ticket.yourNumber}</p>
+                  <p className="mt-4 text-[72px] font-black leading-none tracking-tight text-[#222D64]">
+                    {createdTicket?.ticketNumber}
+                  </p>
+                </div>
+
+                <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                  <div className="rounded-2xl bg-[#f7f9fc] px-4 py-4 text-center">
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-[#222D64]/45">Branch</p>
+                    <p className="mt-2 text-lg font-black text-[#222D64]">{getBranchLabel(createdTicket?.branch)}</p>
+                  </div>
+                  <div className="rounded-2xl bg-[#f7f9fc] px-4 py-4 text-center">
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-[#222D64]/45">Service</p>
+                    <p className="mt-2 text-lg font-black text-[#222D64]">{t.services[createdTicket?.service] || createdTicket?.service}</p>
+                  </div>
+                  <div className="rounded-2xl bg-[#f7f9fc] px-4 py-4 text-center">
+                    <p className="text-xs font-black uppercase tracking-[0.22em] text-[#222D64]/45">Parent</p>
+                    <p className="mt-2 text-lg font-black text-[#222D64]">{createdTicket?.parentName}</p>
+                  </div>
+                </div>
+
+                <div className="mt-8 rounded-[28px] border border-[#e7edf5] bg-[#fbfcfe] px-5 py-6">
                   <TicketBarcode value={createdTicket?.ticketNumber} />
                 </div>
-              </div>
 
-              <div className="flex flex-col gap-5">
-                <div className="rounded-[28px] border border-[#222D64]/10 bg-[#f8fbfd] p-6 shadow-sm">
-                  <p className="text-sm font-black uppercase tracking-[0.32em] text-[#222D64]/45">
-                    Ticket Details
-                  </p>
-                  <dl className="mt-5 space-y-4">
-                    <div className="flex items-start justify-between gap-4 border-b border-[#222D64]/8 pb-4">
-                      <dt className="text-sm font-bold text-[#222D64]/55">Parent Name</dt>
-                      <dd className="text-right text-base font-black text-[#222D64]">{createdTicket?.parentName}</dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-4 border-b border-[#222D64]/8 pb-4">
-                      <dt className="text-sm font-bold text-[#222D64]/55">Service</dt>
-                      <dd className="text-right text-base font-black text-[#222D64]">{t.services[createdTicket?.service] || createdTicket?.service}</dd>
-                    </div>
-                    <div className="flex items-start justify-between gap-4">
-                      <dt className="text-sm font-bold text-[#222D64]/55">Mobile</dt>
-                      <dd className="text-right text-base font-black text-[#222D64]" dir="ltr">{createdTicket?.mobileNumber}</dd>
-                    </div>
-                  </dl>
+                <div className="mt-8 grid items-center gap-6 sm:grid-cols-[1fr_auto]">
+                  <div>
+                    <p className="text-xs font-black uppercase tracking-[0.28em] text-[#222D64]/45">Mobile</p>
+                    <p className="mt-2 text-lg font-black text-[#222D64]" dir="ltr">{createdTicket?.mobileNumber}</p>
+                    <p className="mt-4 text-xs font-bold text-[#222D64]/55">Track: {trackingUrl}</p>
+                  </div>
+                  <div className="justify-self-center">
+                    <QRCodeSVG value={trackingUrl} size={120} level="H" includeMargin={true} className="rounded-2xl bg-white p-2" />
+                  </div>
                 </div>
-
-                <div className="rounded-[28px] border border-dashed border-[#222D64]/20 bg-white px-6 py-5">
-                  <p className="text-base font-bold text-[#222D64]/70">
-                    Keep this ticket for tracking and counter announcements.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="no-print border-t border-[#222D64]/10 px-8 py-6 sm:px-10">
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-                <Button className="h-14 font-bold shadow-md interactive-element rounded-2xl w-full bg-[#25D366] hover:bg-[#1DA851] text-white" onClick={openWhatsAppManual}>
-                  <MessageCircle className="w-5 h-5 mx-2" />
-                  Send via WhatsApp
-                </Button>
-
-                <Button variant="outline" className="h-14 font-bold interactive-element rounded-2xl w-full bg-background hover:bg-muted border-[#222D64]/10" onClick={handlePrint}>
-                  <Printer className="w-5 h-5 mx-2" />
-                  Print Ticket
-                </Button>
-
-                <Button variant="ghost" className="h-14 font-bold text-muted-foreground hover:text-foreground interactive-element w-full rounded-2xl" onClick={handleCreateAnother}>
-                  <Plus className="w-5 h-5 mx-2" />
-                  Create Another
-                </Button>
               </div>
             </div>
           </motion.div>

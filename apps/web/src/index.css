@@ -121,6 +121,10 @@
   .font-barcode {
     font-family: 'Libre Barcode 39', system-ui, sans-serif;
   }
+
+  .print-only {
+    display: none;
+  }
 }
 
 @media print {
@@ -151,5 +155,13 @@
     box-shadow: none !important;
     margin: 0 !important;
     overflow: visible !important;
+  }
+
+  .screen-only {
+    display: none !important;
+  }
+
+  .print-only {
+    display: block !important;
   }
 }

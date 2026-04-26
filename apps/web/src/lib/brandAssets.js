@@ -12,7 +12,7 @@ const normalizePublishedPath = (value) => {
   const trimmed = value.trim();
   if (!trimmed || isLocalFilesystemPath(trimmed)) return null;
 
-  if (/^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
+  if (/^data:image\//i.test(trimmed) || /^https?:\/\//i.test(trimmed) || trimmed.startsWith('/')) {
     return trimmed;
   }
 
