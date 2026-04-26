@@ -17,11 +17,13 @@ export default function Header() {
 
   const NavLinks = () => (
     <>
-      <Link to="/" onClick={closeMenu}>
-        <Button variant={location.pathname === '/' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
-          {t.common.home}
-        </Button>
-      </Link>
+      {isAuthenticated && (
+        <Link to="/" onClick={closeMenu}>
+          <Button variant={location.pathname === '/' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+            {t.common.home}
+          </Button>
+        </Link>
+      )}
       <Link to="/create-ticket" onClick={closeMenu}>
         <Button variant={location.pathname === '/create-ticket' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
           <Ticket className="w-4 h-4 mx-1.5" />
@@ -40,12 +42,14 @@ export default function Header() {
           Display Screen
         </Button>
       </Link>
-      <Link to="/counter-monitor" onClick={closeMenu}>
-        <Button variant={location.pathname === '/counter-monitor' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
-          <Activity className="w-4 h-4 mx-1.5" />
-          Counter Monitor
-        </Button>
-      </Link>
+      {isAuthenticated && (
+        <Link to="/counter-monitor" onClick={closeMenu}>
+          <Button variant={location.pathname === '/counter-monitor' ? 'secondary' : 'ghost'} size="sm" className="w-full justify-start sm:w-auto sm:justify-center font-semibold text-foreground/80 hover:text-foreground">
+            <Activity className="w-4 h-4 mx-1.5" />
+            Counter Monitor
+          </Button>
+        </Link>
+      )}
       {isAuthenticated && !isAdmin && (
         <>
           <Link to="/dashboard" onClick={closeMenu}>
