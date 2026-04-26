@@ -1,6 +1,7 @@
-
 import React, { createContext, useContext, useState, useEffect, useCallback, useRef } from 'react';
 import pb from '@/lib/pocketbaseClient.js';
+import { getCanonicalCounters } from '@/lib/counterOptions.js';
+import { getAvailableServices } from '@/lib/serviceOptions.js';
 
 const SyncContext = createContext(null);
 
@@ -15,6 +16,39 @@ const DEFAULT_SYNC_DATA = {
 
 const CACHE_KEY_SERVICES = 'amic_services_cache';
 const CACHE_TTL = 3600000; // 1 hour
+const ALLOWED_USER_ROLES = new Set(['admin', 'staff', 'operator']);
+
+const hasVisibleIdentity = (user) => (
+  [user?.email, user?.username, user?.name].some((value) => String(value || '').trim().length > 0)
+);
+
+const normalizeUsers = (users) => {
+  if (!Array.isArray(users)) return [];
+
+  return users
+    .filter(Boolean)
+    .map((user) => {
+      const role = String(user?.role || '').trim().toLowerCase();
+      const counterNumber = Number(user?.counterNumber || 0);
+      const legacyCounter = Number(user?.counter || 0);
+
+      return {
+        ...user,
+        role,
+        counterNumber: counterNumber > 0 ? counterNumber : (legacyCounter > 0 ? legacyCounter : 0),
+      };
+    })
+    .filter((user) => ALLOWED_USER_ROLES.has(user.role) && hasVisibleIdentity(user));
+};
+
+const normalizeSyncData = (nextData) => ({
+  tickets: Array.isArray(nextData?.tickets) ? nextData.tickets : [],
+  activity_logs: Array.isArray(nextData?.activity_logs) ? nextData.activity_logs : [],
+  counters: getCanonicalCounters(nextData?.counters),
+  services: getAvailableServices(nextData?.services),
+  users: normalizeUsers(nextData?.users),
+  settings: Array.isArray(nextData?.settings) ? nextData.settings : [],
+});
 
 export const SyncProvider = ({ children }) => {
   const [data, setData] = useState(DEFAULT_SYNC_DATA);
@@ -54,14 +88,14 @@ export const SyncProvider = ({ children }) => {
         localStorage.setItem(CACHE_KEY_SERVICES, JSON.stringify({ data: servicesRes, timestamp: Date.now() }));
       }
 
-      setData({ 
+      setData(normalizeSyncData({
         tickets: tickets || [], 
         activity_logs: logs || [], 
         counters: counters || [], 
         services: servicesRes || [], 
         users: users || [],
         settings: settings || []
-      });
+      }));
       setIsConnected(true);
       setError(null);
     } catch (err) {
@@ -74,7 +108,7 @@ export const SyncProvider = ({ children }) => {
   const fetchTickets = async () => {
     try {
       const tickets = await pb.collection('tickets').getFullList({ sort: '-updated', $autoCancel: false });
-      setData(prev => ({ ...prev, tickets: tickets || [] }));
+      setData((prev) => normalizeSyncData({ ...prev, tickets: tickets || [] }));
       return tickets;
     } catch (err) {
       return [];
@@ -88,8 +122,9 @@ export const SyncProvider = ({ children }) => {
         filter: 'role="staff" || role="operator" || role="admin"',
         $autoCancel: false 
       });
-      setData(prev => ({ ...prev, users: users || [] }));
-      return users;
+      const normalizedUsers = normalizeUsers(users || []);
+      setData((prev) => normalizeSyncData({ ...prev, users: normalizedUsers }));
+      return normalizedUsers;
     } catch (err) {
       return [];
     }
@@ -110,10 +145,10 @@ export const SyncProvider = ({ children }) => {
             
             setData(prev => {
               const current = prev?.[collection] ?? [];
-              if (e.action === 'create') return { ...prev, [collection]: [e.record, ...current] };
-              if (e.action === 'update') return { ...prev, [collection]: current.map(item => item?.id === e.record.id ? e.record : item) };
-              if (e.action === 'delete') return { ...prev, [collection]: current.filter(item => item?.id !== e.record.id) };
-              return prev;
+              if (e.action === 'create') return normalizeSyncData({ ...prev, [collection]: [e.record, ...current] });
+              if (e.action === 'update') return normalizeSyncData({ ...prev, [collection]: current.map(item => item?.id === e.record.id ? e.record : item) });
+              if (e.action === 'delete') return normalizeSyncData({ ...prev, [collection]: current.filter(item => item?.id !== e.record.id) });
+              return normalizeSyncData(prev);
             });
           }).then(() => {
             subscriptionsRef.current.add(collection);

@@ -11,7 +11,20 @@ import { toast } from 'sonner';
 import { useSyncContext } from '@/contexts/SyncContext.jsx';
 import ErrorBoundary from '@/components/ErrorBoundary.jsx';
 import { AddStaffModal } from '@/components/AddStaffModal.jsx';
-import { getCounterOptions, getNextCounterNumber, isCounterActive } from '@/lib/counterOptions.js';
+import { getCanonicalCounters, getCounterOptions, getNextCounterNumber, isCounterActive } from '@/lib/counterOptions.js';
+
+const getDisplayName = (user) => {
+  const name = String(user?.name || '').trim();
+  if (name) return name;
+
+  const username = String(user?.username || '').trim();
+  if (username) return username;
+
+  const email = String(user?.email || '').trim();
+  if (email) return email.split('@')[0];
+
+  return 'Unknown User';
+};
 
 const AdminUsersPageContent = () => {
   const { data: syncData, refetchUsers, refetch } = useSyncContext();
@@ -21,12 +34,13 @@ const AdminUsersPageContent = () => {
   const [counterForm, setCounterForm] = useState({ counterNumber: '', name: '' });
 
   const usersList = useMemo(
-    () => [...(syncData?.users || [])].sort((a, b) => new Date(b?.updated || 0) - new Date(a?.updated || 0)),
+    () => [...(syncData?.users || [])]
+      .sort((a, b) => new Date(b?.updated || 0) - new Date(a?.updated || 0)),
     [syncData?.users],
   );
 
   const countersList = useMemo(
-    () => [...(syncData?.counters || [])].sort((a, b) => Number(a?.counterNumber || 0) - Number(b?.counterNumber || 0)),
+    () => getCanonicalCounters(syncData?.counters),
     [syncData?.counters],
   );
 
@@ -57,7 +71,7 @@ const AdminUsersPageContent = () => {
 
   const handleDelete = async (user) => {
     if (!user?.id) return;
-    if (!window.confirm(`Are you sure you want to delete staff member ${user.email}?`)) return;
+    if (!window.confirm(`Are you sure you want to delete staff member ${user.email || getDisplayName(user)}?`)) return;
 
     setLoading(true);
     try {
@@ -162,7 +176,7 @@ const AdminUsersPageContent = () => {
         </div>
       </div>
 
-      <section className="mb-8 grid gap-6 lg:grid-cols-[1.2fr_1fr]">
+      <section className="mb-8 grid items-start gap-6 lg:grid-cols-[minmax(0,1.25fr)_360px]">
         <div className="bg-card/95 backdrop-blur-xl border border-border/40 rounded-[2rem] shadow-xl p-6">
           <div className="flex items-center gap-3 mb-5">
             <Monitor className="w-5 h-5 text-primary" />
@@ -194,11 +208,11 @@ const AdminUsersPageContent = () => {
             </Button>
           </form>
 
-          <div className="mt-6 flex flex-wrap gap-3">
+          <div className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
             {countersList.map((counter) => (
               <div
                 key={counter.id}
-                className="min-w-[180px] rounded-2xl border border-border/50 bg-muted/20 px-4 py-3"
+                className="rounded-2xl border border-border/50 bg-muted/20 px-4 py-3"
               >
                 <div className="flex items-start justify-between gap-3">
                   <div>
@@ -277,12 +291,12 @@ const AdminUsersPageContent = () => {
                 const counterDisplay = user?.counterNumber ?? user?.counter ?? null;
 
                 return (
-                  <TableRow key={user?.id || Math.random()} className="hover:bg-muted/30 transition-colors">
+                  <TableRow key={user?.id} className="hover:bg-muted/30 transition-colors">
                     <TableCell className="py-4">
-                      <p className="font-bold text-foreground">{user?.name || user?.username || '-'}</p>
+                      <p className="font-bold text-foreground">{getDisplayName(user)}</p>
                       {user?.name && user?.username && <p className="text-xs text-muted-foreground">@{user.username}</p>}
                     </TableCell>
-                    <TableCell className="text-muted-foreground py-4 font-medium">{user?.email ?? '---'}</TableCell>
+                    <TableCell className="text-muted-foreground py-4 font-medium">{user?.email || '---'}</TableCell>
                     <TableCell className="py-4">
                       <Badge variant={user?.role === 'admin' ? 'default' : 'secondary'} className="capitalize px-3 py-1 rounded-lg font-bold">
                         {user?.role || 'operator'}

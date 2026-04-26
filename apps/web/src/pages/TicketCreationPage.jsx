@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -15,22 +15,8 @@ import pb from '@/lib/pocketbaseClient.js';
 import { getAppPath, getAppUrl } from '@/lib/runtimeUrls.js';
 import { useTicketNumbering } from '@/hooks/useTicketNumbering.js';
 import { resolvePublishedAssetUrl } from '@/lib/brandAssets.js';
+import { getAvailableServices } from '@/lib/serviceOptions.js';
 import TicketBarcode from '@/components/TicketBarcode.jsx';
-
-const SERVICES_KEYS = [
-  'Inquiry',
-  'Complaint',
-  'Suggestion',
-  'New Registration',
-  'Full-Year Fee Payment',
-  'Instalment Payment',
-  'Book Collection',
-  'Uniform Purchase',
-  'Uniform Collection',
-  'Leave Request',
-  'Document Submission',
-  'Student File Update',
-];
 
 const BRANCH_OPTIONS = [
   { value: 'AMIS', label: 'Ajyal' },
@@ -38,6 +24,24 @@ const BRANCH_OPTIONS = [
 ];
 
 const getBranchLabel = (value) => BRANCH_OPTIONS.find((branch) => branch.value === value)?.label || value;
+
+const formatRecordError = (error) => {
+  const responseMessage = error?.response?.message || error?.message || 'Unknown error';
+  const details = error?.response?.data || error?.data;
+
+  if (!details || typeof details !== 'object' || Object.keys(details).length === 0) {
+    return responseMessage;
+  }
+
+  const fieldMessages = Object.entries(details)
+    .map(([field, value]) => {
+      const message = value?.message || value?.code || String(value || '').trim();
+      return message ? `${field}: ${message}` : field;
+    })
+    .filter(Boolean);
+
+  return fieldMessages.length > 0 ? `${responseMessage} (${fieldMessages.join(' | ')})` : responseMessage;
+};
 
 const playSuccessSound = () => {
   try {
@@ -71,6 +75,7 @@ const TicketCreationPageContent = () => {
   const isRtl = language === 'ar';
   const { generateTicketNumber } = useTicketNumbering();
   const settings = Array.isArray(syncData?.settings) && syncData.settings.length > 0 ? syncData.settings[0] : null;
+  const serviceOptions = useMemo(() => getAvailableServices(syncData?.services), [syncData?.services]);
   const logoUrl = resolvePublishedAssetUrl({
     record: settings,
     fileField: 'logoImage',
@@ -139,8 +144,7 @@ const TicketCreationPageContent = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
       console.error('Ticket creation error:', err);
-      const detailedMsg = err?.data ? JSON.stringify(err.data) : (err?.message || 'Unknown error');
-      setError(`Failed to create ticket: ${detailedMsg}`);
+      setError(`Failed to create ticket: ${formatRecordError(err)}`);
     } finally {
       setLoading(false);
     }
@@ -254,9 +258,9 @@ const TicketCreationPageContent = () => {
                     <SelectValue placeholder={t.ticket.selectService} />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl max-h-[300px]">
-                    {SERVICES_KEYS.map((key) => (
-                      <SelectItem key={key} value={key} className="py-3 text-base font-medium hover:bg-primary/5">
-                        {t.services[key] || key}
+                    {serviceOptions.map((serviceOption) => (
+                      <SelectItem key={serviceOption.id || serviceOption.name} value={serviceOption.name} className="py-3 text-base font-medium hover:bg-primary/5">
+                        {t.services[serviceOption.name] || serviceOption.nameAr || serviceOption.name}
                       </SelectItem>
                     ))}
                   </SelectContent>
