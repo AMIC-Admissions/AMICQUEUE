@@ -7,6 +7,7 @@ import ErrorBoundary from '@/components/ErrorBoundary.jsx';
 import EnableSoundButton from '@/components/EnableSoundButton.jsx';
 import { useVoiceAnnouncement } from '@/hooks/useVoiceAnnouncement.js';
 import { useSyncContext } from '@/contexts/SyncContext.jsx';
+import { useLanguage } from '@/contexts/LanguageContext.jsx';
 import { resolvePublishedAssetUrl } from '@/lib/brandAssets.js';
 
 const BRANCH_LABELS = {
@@ -20,6 +21,13 @@ const BRANCH_LABELS = {
 const formatBranch = (branch) => BRANCH_LABELS[branch] || branch || 'Branch';
 const getCounterValue = (ticket) => ticket?.counter ?? ticket?.counterNumber ?? '--';
 const getTicketTimestamp = (ticket) => ticket?.calledAt || ticket?.updated || ticket?.created || 0;
+const BILINGUAL_BRANCH_LABELS = {
+  AMIS: { en: 'Ajyal', ar: '\u0623\u062c\u064a\u0627\u0644' },
+  Ajyal: { en: 'Ajyal', ar: '\u0623\u062c\u064a\u0627\u0644' },
+  KIDS: { en: 'Kids Gate', ar: '\u0643\u064a\u062f\u0632 \u062c\u064a\u062a' },
+  KidsGate: { en: 'Kids Gate', ar: '\u0643\u064a\u062f\u0632 \u062c\u064a\u062a' },
+  'Kids Gate': { en: 'Kids Gate', ar: '\u0643\u064a\u062f\u0632 \u062c\u064a\u062a' },
+};
 
 const formatTime = (date) => new Intl.DateTimeFormat(undefined, {
   hour: '2-digit',
@@ -33,7 +41,14 @@ const formatDate = (date) => new Intl.DateTimeFormat(undefined, {
   year: 'numeric'
 }).format(date);
 
+const getBilingualBranch = (branch) => {
+  const labels = BILINGUAL_BRANCH_LABELS[branch];
+  if (!labels) return formatBranch(branch);
+  return `${labels.en} / ${labels.ar}`;
+};
+
 const DisplayScreenContent = () => {
+  const { language } = useLanguage();
   const { data: syncData } = useSyncContext();
   const [tickets, setTickets] = useState([]);
   const [fetchError, setFetchError] = useState(false);
@@ -116,6 +131,26 @@ const DisplayScreenContent = () => {
   const currentTicket = calledTickets[0] || null;
   const previousTickets = calledTickets.slice(1, 5);
   const systemTitle = settings?.systemTitle?.trim() || 'Admissions & Registration Office';
+  const isArabic = language === 'ar';
+  const displayTitle = isArabic ? '\u0645\u0643\u062a\u0628 \u0627\u0644\u0642\u0628\u0648\u0644 \u0648\u0627\u0644\u062a\u0633\u062c\u064a\u0644' : systemTitle;
+  const liveLabel = isArabic ? '\u0634\u0627\u0634\u0629 \u0627\u0644\u0646\u062f\u0627\u0621 \u0627\u0644\u0645\u0628\u0627\u0634\u0631' : 'Live public display';
+  const nowServingLabel = isArabic ? '\u062c\u0627\u0631\u064a \u0627\u0644\u0646\u062f\u0627\u0621 \u0627\u0644\u0622\u0646' : 'Now Serving';
+  const currentQueueLabel = isArabic ? '\u0627\u0644\u062a\u0630\u0643\u0631\u0629 \u0627\u0644\u062d\u0627\u0644\u064a\u0629' : 'Current queue call';
+  const currentQueueDescription = isArabic
+    ? '\u064a\u0645\u0643\u0646 \u0644\u0644\u0623\u0647\u0627\u0644\u064a \u0645\u062a\u0627\u0628\u0639\u0629 \u0631\u0642\u0645 \u0627\u0644\u062a\u0630\u0643\u0631\u0629 \u0648\u0627\u0644\u0643\u0627\u0648\u0646\u062a\u0631 \u0648\u0627\u0644\u062e\u062f\u0645\u0629 \u0628\u0648\u0636\u0648\u062d \u0645\u0646 \u0623\u064a \u0645\u0643\u0627\u0646 \u0641\u064a \u0627\u0644\u0642\u0627\u0639\u0629.'
+    : 'Families can follow the active ticket and counter clearly from a distance.';
+  const connectionRetryLabel = isArabic ? '\u062c\u0627\u0631\u064a \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u0627\u062a\u0635\u0627\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631' : 'Connection retry in progress';
+  const ticketNumberLabel = isArabic ? '\u0631\u0642\u0645 \u0627\u0644\u062a\u0630\u0643\u0631\u0629' : 'Ticket Number';
+  const counterLabel = isArabic ? '\u0627\u0644\u0643\u0627\u0648\u0646\u062a\u0631' : 'Counter';
+  const branchLabel = isArabic ? '\u0627\u0644\u0641\u0631\u0639' : 'Branch';
+  const calledAtLabel = isArabic ? '\u0648\u0642\u062a \u0627\u0644\u0646\u062f\u0627\u0621' : 'Called At';
+  const queueStandbyLabel = isArabic ? '\u0641\u064a \u0627\u0646\u062a\u0638\u0627\u0631 \u0627\u0644\u0646\u062f\u0627\u0621 \u0627\u0644\u062a\u0627\u0644\u064a' : 'Queue standby';
+  const queueStandbyDescription = isArabic
+    ? '\u0633\u062a\u0638\u0647\u0631 \u0647\u0646\u0627 \u0645\u0628\u0627\u0634\u0631\u0629 \u0627\u0644\u062a\u0630\u0643\u0631\u0629 \u0627\u0644\u062a\u0627\u0644\u064a\u0629 \u0627\u0644\u062a\u064a \u064a\u062a\u0645 \u0646\u062f\u0627\u0624\u0647\u0627 \u0645\u0639 \u0627\u0644\u062e\u062f\u0645\u0629 \u0648\u0631\u0642\u0645 \u0627\u0644\u0643\u0627\u0648\u0646\u062a\u0631.'
+    : 'The next called ticket will appear here immediately with its service and counter number.';
+  const retryingLabel = isArabic ? '\u062c\u0627\u0631\u064a \u0625\u0639\u0627\u062f\u0629 \u0627\u0644\u0645\u062d\u0627\u0648\u0644\u0629 \u0644\u0644\u0627\u062a\u0635\u0627\u0644 \u0627\u0644\u0645\u0628\u0627\u0634\u0631.' : 'Live connection is retrying.';
+  const recentCallsLabel = isArabic ? '\u0622\u062e\u0631 \u0627\u0644\u0646\u062f\u0627\u0621\u0627\u062a' : 'Recent Calls';
+  const noRecentCallsLabel = isArabic ? '\u0644\u0627 \u062a\u0648\u062c\u062f \u0646\u062f\u0627\u0621\u0627\u062a \u0633\u0627\u0628\u0642\u0629 \u062d\u062a\u0649 \u0627\u0644\u0622\u0646.' : 'No recent calls yet.';
 
   return (
     <div
@@ -146,13 +181,13 @@ const DisplayScreenContent = () => {
 
           <div className="flex flex-col items-center pt-1 text-center">
             <p className="text-sm font-bold uppercase tracking-[0.35em] text-[#222D64]/45">
-              AMIC Queue System
+              {isArabic ? '\u0646\u0638\u0627\u0645 \u0637\u0648\u0627\u0628\u064a\u0631 AMIC' : 'AMIC Queue System'}
             </p>
             <h1 className="mt-2 text-3xl font-black tracking-tight text-[#222D64] xl:text-4xl">
-              {systemTitle}
+              {displayTitle}
             </h1>
             <div className="mt-4 inline-flex items-center rounded-full border border-[#222D64]/10 bg-white/86 px-4 py-2 text-sm font-semibold text-[#222D64]/65 shadow-sm">
-              Live public display
+              {liveLabel}
             </div>
           </div>
 
@@ -162,11 +197,11 @@ const DisplayScreenContent = () => {
               className="border border-[#222D64]/10 bg-white/92 text-[#222D64] shadow-[0_12px_28px_rgba(34,45,100,0.08)] hover:bg-white"
             />
 
-            <div className="min-w-[220px] rounded-[24px] border border-[#222D64]/10 bg-white/88 px-5 py-4 text-right shadow-[0_16px_32px_rgba(34,45,100,0.06)]">
-              <div className="flex items-center justify-end gap-2 text-xs font-bold uppercase tracking-[0.28em] text-[#222D64]/45">
-                <CalendarDays className="h-4 w-4" />
-                Today
-              </div>
+              <div className="min-w-[220px] rounded-[24px] border border-[#222D64]/10 bg-white/88 px-5 py-4 text-right shadow-[0_16px_32px_rgba(34,45,100,0.06)]">
+                <div className="flex items-center justify-end gap-2 text-xs font-bold uppercase tracking-[0.28em] text-[#222D64]/45">
+                  <CalendarDays className="h-4 w-4" />
+                  {isArabic ? '\u0627\u0644\u064a\u0648\u0645' : 'Today'}
+                </div>
               <div className="mt-2 text-3xl font-black tracking-tight text-[#222D64]">
                 {formatTime(now)}
               </div>
@@ -196,20 +231,20 @@ const DisplayScreenContent = () => {
                         style={{ backgroundColor: 'rgba(111, 206, 181, 0.22)', color: '#1f6d5b' }}
                       >
                         <MonitorSpeaker className="h-4 w-4" />
-                        Now Serving
+                        {nowServingLabel}
                       </div>
 
                       <h2 className="mt-6 text-5xl font-black tracking-tight text-[#222D64] xl:text-6xl">
-                        Current queue call
+                        {currentQueueLabel}
                       </h2>
                       <p className="mt-4 text-lg font-medium leading-8 text-[#222D64]/62 xl:text-2xl">
-                        Families can follow the active ticket and counter clearly from a distance.
+                        {currentQueueDescription}
                       </p>
                     </div>
 
                     {fetchError && (
                       <div className="rounded-full border border-amber-200 bg-amber-50 px-4 py-2 text-sm font-bold text-amber-700">
-                        Connection retry in progress
+                        {connectionRetryLabel}
                       </div>
                     )}
                   </div>
@@ -217,7 +252,7 @@ const DisplayScreenContent = () => {
                   <div className="mt-10 grid gap-6 xl:grid-cols-[1.35fr_0.95fr]">
                     <div className="rounded-[34px] bg-[#222D64] p-8 text-white shadow-[0_24px_60px_rgba(34,45,100,0.28)] xl:p-10">
                       <p className="text-sm font-bold uppercase tracking-[0.32em] text-white/58">
-                        Ticket Number
+                        {ticketNumberLabel}
                       </p>
                       <p className="mt-6 text-[clamp(5rem,10vw,9.25rem)] font-black leading-none tracking-tight">
                         {currentTicket.ticketNumber}
@@ -225,7 +260,7 @@ const DisplayScreenContent = () => {
 
                       <div className="mt-8 flex flex-wrap gap-3">
                         <span className="rounded-full bg-white/10 px-4 py-2 text-base font-semibold">
-                          {formatBranch(currentTicket.branch)}
+                          {getBilingualBranch(currentTicket.branch)}
                         </span>
                         <span className="rounded-full bg-white/10 px-4 py-2 text-base font-semibold">
                           {currentTicket.service || 'Service'}
@@ -235,7 +270,7 @@ const DisplayScreenContent = () => {
 
                     <div className="rounded-[34px] border border-[#222D64]/10 bg-white p-8 shadow-[0_20px_50px_rgba(34,45,100,0.08)] xl:p-10">
                       <p className="text-sm font-bold uppercase tracking-[0.32em] text-[#222D64]/42">
-                        Counter
+                        {counterLabel}
                       </p>
                       <p className="mt-6 text-[clamp(5rem,9vw,8.5rem)] font-black leading-none tracking-tight text-[#222D64]">
                         {getCounterValue(currentTicket)}
@@ -245,17 +280,17 @@ const DisplayScreenContent = () => {
                         <div className="rounded-[24px] bg-[#f5f7fb] px-5 py-4">
                           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-[#222D64]/42">
                             <Building2 className="h-4 w-4" />
-                            Branch
+                            {branchLabel}
                           </div>
                           <p className="mt-3 text-2xl font-black text-[#222D64]">
-                            {formatBranch(currentTicket.branch)}
+                            {getBilingualBranch(currentTicket.branch)}
                           </p>
                         </div>
 
                         <div className="rounded-[24px] bg-[#f5f7fb] px-5 py-4">
                           <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-[0.24em] text-[#222D64]/42">
                             <Clock3 className="h-4 w-4" />
-                            Called At
+                            {calledAtLabel}
                           </div>
                           <p className="mt-3 text-2xl font-black text-[#222D64]">
                             {formatTime(new Date(getTicketTimestamp(currentTicket)))}
@@ -283,15 +318,15 @@ const DisplayScreenContent = () => {
                   </div>
 
                   <h2 className="mt-8 text-5xl font-black tracking-tight text-[#222D64] xl:text-6xl">
-                    Queue standby
+                    {queueStandbyLabel}
                   </h2>
                   <p className="mx-auto mt-5 max-w-3xl text-xl font-medium leading-9 text-[#222D64]/58 xl:text-2xl">
-                    The next called ticket will appear here immediately with its service and counter number.
+                    {queueStandbyDescription}
                   </p>
 
                   {fetchError && (
                     <p className="mt-6 text-base font-bold text-amber-700">
-                      Live connection is retrying.
+                      {retryingLabel}
                     </p>
                   )}
                 </div>
@@ -303,7 +338,7 @@ const DisplayScreenContent = () => {
         <footer className="grid items-start gap-4 xl:grid-cols-[260px_1fr]">
           <div className="rounded-[28px] bg-[#222D64] px-6 py-5 text-white shadow-[0_20px_50px_rgba(34,45,100,0.24)]">
             <p className="text-xs font-bold uppercase tracking-[0.32em] text-white/55">
-              Recent Calls
+              {recentCallsLabel}
             </p>
             <p className="mt-3 text-3xl font-black tracking-tight">
               {previousTickets.length.toString().padStart(2, '0')}
@@ -324,13 +359,13 @@ const DisplayScreenContent = () => {
                 </p>
 
                 <div className="mt-5 flex items-center justify-between text-sm font-semibold text-[#222D64]/58">
-                  <span>{formatBranch(ticket.branch)}</span>
-                  <span>Counter {getCounterValue(ticket)}</span>
+                  <span>{getBilingualBranch(ticket.branch)}</span>
+                  <span>{isArabic ? `\u0643\u0627\u0648\u0646\u062a\u0631 ${getCounterValue(ticket)}` : `Counter ${getCounterValue(ticket)}`}</span>
                 </div>
               </div>
             )) : (
               <div className="rounded-[28px] border border-dashed border-[#222D64]/15 bg-white/68 px-6 py-8 text-lg font-semibold text-[#222D64]/48 xl:col-span-4">
-                No recent calls yet.
+                {noRecentCallsLabel}
               </div>
             )}
           </div>
