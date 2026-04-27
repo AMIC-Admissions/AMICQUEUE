@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Helmet } from 'react-helmet';
 import { Link } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -24,6 +24,14 @@ const BRANCH_OPTIONS = [
 ];
 
 const getBranchLabel = (value) => BRANCH_OPTIONS.find((branch) => branch.value === value)?.label || value;
+const buildWhatsAppMessage = (ticket, trackingUrl, translations) => {
+  const template = translations?.messages?.welcomeWhatsApp
+    || 'Welcome to the Admissions & Registration Office\n\nYour ticket number: {ticket}\n\nTrack here: {link}';
+
+  return template
+    .replace('{ticket}', ticket?.ticketNumber || '')
+    .replace('{link}', trackingUrl || '');
+};
 
 const formatRecordError = (error) => {
   const responseMessage = error?.response?.message || error?.message || 'Unknown error';
@@ -99,6 +107,7 @@ const TicketCreationPageContent = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState(false);
   const [createdTicket, setCreatedTicket] = useState(null);
+  const [whatsAppOpened, setWhatsAppOpened] = useState(false);
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -169,6 +178,7 @@ const TicketCreationPageContent = () => {
       playSuccessSound();
       setSuccess(true);
       setCreatedTicket(record);
+      setWhatsAppOpened(false);
       setFormData({ parentName: '', mobile: '', branch: '', service: '' });
       window.scrollTo({ top: 0, behavior: 'smooth' });
     } catch (err) {
@@ -183,6 +193,7 @@ const TicketCreationPageContent = () => {
     setCreatedTicket(null);
     setSuccess(false);
     setError('');
+    setWhatsAppOpened(false);
   };
 
   const trackingUrl = createdTicket ? getAppUrl(`/track?ticket=${encodeURIComponent(createdTicket.ticketNumber)}`) : '';
@@ -202,14 +213,24 @@ const TicketCreationPageContent = () => {
     let waNumber = createdTicket.mobileNumber;
     if (waNumber.startsWith('+')) waNumber = waNumber.substring(1);
 
-    const message = [
-      'Welcome to Admissions & Registration Office',
-      `Your ticket: ${createdTicket.ticketNumber}`,
-      `Track here: ${trackingUrl}`,
-    ].join('\n');
+    const message = buildWhatsAppMessage(createdTicket, trackingUrl, t);
 
     window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, '_blank');
   };
+
+  useEffect(() => {
+    if (!createdTicket || whatsAppOpened || !createdTicket.mobileNumber) return;
+
+    let waNumber = createdTicket.mobileNumber;
+    if (waNumber.startsWith('+')) waNumber = waNumber.substring(1);
+
+    const message = buildWhatsAppMessage(createdTicket, trackingUrl, t);
+    const openedWindow = window.open(`https://wa.me/${waNumber}?text=${encodeURIComponent(message)}`, '_blank');
+
+    if (openedWindow) {
+      setWhatsAppOpened(true);
+    }
+  }, [createdTicket, trackingUrl, t, whatsAppOpened]);
 
   const handlePrint = () => {
     window.print();
