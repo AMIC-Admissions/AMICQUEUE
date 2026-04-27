@@ -131,11 +131,7 @@ function App() {
                     </ProtectedRoute>
                   } />
 
-                  <Route path="/counter-monitor" element={
-                    <ProtectedRoute>
-                      <Layout><CounterMonitorPage /></Layout>
-                    </ProtectedRoute>
-                  } />
+                  <Route path="/counter-monitor" element={<Layout><CounterMonitorPage /></Layout>} />
 
                   <Route path="/admin" element={
                     <ProtectedRoute requireAdmin={true}>
