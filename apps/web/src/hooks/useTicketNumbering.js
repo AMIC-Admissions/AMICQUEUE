@@ -23,28 +23,16 @@ const parseSequenceNumber = (ticketNumber, prefix) => {
   return Number.isFinite(value) && value > 0 ? value : null;
 };
 
-const isSameLocalDay = (value, dayStart) => {
-  if (!value) return false;
+const getNextSequentialNumber = (numbers) => {
+  const validNumbers = numbers
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value > 0);
 
-  const timestamp = new Date(value);
-  if (Number.isNaN(timestamp.getTime())) return false;
-
-  return timestamp >= dayStart;
-};
-
-const getNextAvailableNumber = (numbers) => {
-  const usedNumbers = new Set(
-    numbers
-      .map((value) => Number(value))
-      .filter((value) => Number.isFinite(value) && value > 0)
-  );
-
-  let next = 1;
-  while (usedNumbers.has(next)) {
-    next += 1;
+  if (validNumbers.length === 0) {
+    return 1;
   }
 
-  return next;
+  return Math.max(...validNumbers) + 1;
 };
 
 export const useTicketNumbering = () => {
@@ -53,8 +41,6 @@ export const useTicketNumbering = () => {
     const prefix = BRANCH_PREFIXES[normalizedBranch];
 
     try {
-      const startOfDay = new Date();
-      startOfDay.setHours(0, 0, 0, 0);
       const excludedNumbers = excludedTicketNumbers
         .map((ticketNumber) => parseSequenceNumber(ticketNumber, prefix))
         .filter((value) => value !== null);
@@ -64,12 +50,11 @@ export const useTicketNumbering = () => {
         $autoCancel: false
       });
 
-      const todaysSequenceNumbers = records
-        .filter((record) => isSameLocalDay(record?.created || record?.updated, startOfDay))
+      const branchSequenceNumbers = records
         .map((record) => parseSequenceNumber(record?.ticketNumber, prefix))
         .filter((value) => value !== null);
 
-      const nextNumber = getNextAvailableNumber([...todaysSequenceNumbers, ...excludedNumbers]);
+      const nextNumber = getNextSequentialNumber([...branchSequenceNumbers, ...excludedNumbers]);
       return `${prefix}-${nextNumber.toString().padStart(3, '0')}`;
     } catch (err) {
       console.error('Failed to generate ticket number:', err);
