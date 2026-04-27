@@ -27,6 +27,7 @@ const getRecordTime = (record) => new Date(record?.created || record?.createdAt 
 const formatBranch = (branch) => BRANCH_LABELS[branch] || branch || '-';
 const getTicketCounterNumber = (ticket) => Number(ticket?.counter ?? ticket?.counterNumber ?? 0);
 const formatCounter = (ticket) => ticket?.counter || ticket?.counterNumber || '-';
+const getWaitingTimestamp = (ticket) => new Date(ticket?.waitingAt || ticket?.updated || ticket?.created || 0).getTime();
 
 const StaffDashboardContent = () => {
   const { selectedCounter, logout } = useAuth();
@@ -103,6 +104,14 @@ const StaffDashboardContent = () => {
   const activeTicket = useMemo(() => {
     return tickets.find((ticket) => getTicketCounterNumber(ticket) === counterNum && ticket.status === 'Called') || null;
   }, [tickets, counterNum]);
+
+  const waitingTickets = useMemo(() => {
+    return tickets
+      .filter((ticket) => getTicketCounterNumber(ticket) === counterNum && ticket.status === 'Waiting')
+      .sort((left, right) => getWaitingTimestamp(left) - getWaitingTimestamp(right));
+  }, [tickets, counterNum]);
+
+  const nextWaitingTicket = waitingTickets[0] || null;
 
   const filteredTickets = useMemo(() => {
     return tickets
@@ -195,6 +204,36 @@ const StaffDashboardContent = () => {
     }
   };
 
+  const handleRecallWaitingTicket = async () => {
+    if (!nextWaitingTicket) {
+      toast.error('No waiting ticket to recall');
+      return;
+    }
+
+    if (activeTicket) {
+      toast.error('Finish the current called ticket first');
+      return;
+    }
+
+    setActionLoading(true);
+    try {
+      const updatedTicket = await pb.collection('tickets').update(nextWaitingTicket.id, {
+        status: 'Called',
+        counter: counterNum,
+        counterNumber: counterNum,
+        calledAt: new Date().toISOString()
+      }, { $autoCancel: false });
+
+      addToVoiceQueue(updatedTicket);
+      toast.success(`Recalled ${updatedTicket.ticketNumber}`);
+    } catch (error) {
+      console.error('Recall waiting error:', error);
+      toast.error('Failed to recall waiting ticket');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   if (loading) {
     return <div className="min-h-[60vh] flex items-center justify-center"><Loader2 className="w-10 h-10 animate-spin text-primary" /></div>;
   }
@@ -267,6 +306,26 @@ const StaffDashboardContent = () => {
                 CALL NEXT
               </Button>
 
+              {nextWaitingTicket && (
+                <div className="rounded-xl border border-orange-500/20 bg-orange-500/5 px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-black text-orange-700">Waiting at this counter</p>
+                      <p className="mt-1 font-semibold text-orange-600">
+                        {nextWaitingTicket.ticketNumber} • {nextWaitingTicket.service}
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleRecallWaitingTicket}
+                      disabled={actionLoading || !!activeTicket}
+                      className="rounded-xl bg-orange-600 font-bold text-white hover:bg-orange-700"
+                    >
+                      <Play className="w-4 h-4 mr-2" /> Recall Waiting
+                    </Button>
+                  </div>
+                </div>
+              )}
+
               <div className="grid grid-cols-2 gap-3 mt-2">
                 <Button
                   onClick={() => updateTicketStatus(activeTicket.id, 'Waiting', { waitingAt: new Date().toISOString() })}
@@ -282,7 +341,7 @@ const StaffDashboardContent = () => {
                   variant="outline"
                   className="h-14 font-bold rounded-xl"
                 >
-                  <ArrowRightLeft className="w-4 h-4 mr-2" /> Recall
+                  <ArrowRightLeft className="w-4 h-4 mr-2" /> Return Queue
                 </Button>
                 <Button
                   onClick={() => updateTicketStatus(activeTicket.id, 'Served', { servedAt: new Date().toISOString() })}
