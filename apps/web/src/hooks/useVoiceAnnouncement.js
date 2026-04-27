@@ -1,15 +1,16 @@
-
 import { useState, useCallback, useRef, useEffect } from 'react';
+
+const ARABIC_CALL_PREFIX = '\u0646\u0631\u062c\u0648 \u0627\u0644\u0627\u0646\u062a\u0628\u0627\u0647. \u0627\u0644\u062a\u0630\u0643\u0631\u0629';
+const ARABIC_CALL_SUFFIX = '\u064a\u0631\u062c\u0649 \u0627\u0644\u062a\u0648\u062c\u0647 \u0625\u0644\u0649 \u0627\u0644\u0643\u0627\u0648\u0646\u062a\u0631';
 
 export const useVoiceAnnouncement = () => {
   const [voiceQueue, setVoiceQueue] = useState([]);
   const [isPlayingVoice, setIsPlayingVoice] = useState(false);
   const [lastAnnouncedTicket, setLastAnnouncedTicket] = useState(null);
-  
+
   const processingRef = useRef(false);
   const queueRef = useRef([]);
 
-  // Sync ref with state
   useEffect(() => {
     queueRef.current = voiceQueue;
   }, [voiceQueue]);
@@ -22,26 +23,26 @@ export const useVoiceAnnouncement = () => {
           resolve();
           return;
         }
+
         const ctx = new AudioContext();
         const osc = ctx.createOscillator();
         const gainNode = ctx.createGain();
-        
+
         osc.connect(gainNode);
         gainNode.connect(ctx.destination);
-        
+
         osc.type = 'sine';
-        osc.frequency.setValueAtTime(1000, ctx.currentTime); // 1000Hz
-        
-        gainNode.gain.setValueAtTime(0.3, ctx.currentTime); // 0.3 volume
+        osc.frequency.setValueAtTime(1000, ctx.currentTime);
+
+        gainNode.gain.setValueAtTime(0.3, ctx.currentTime);
         gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.2);
-        
+
         osc.start(ctx.currentTime);
-        osc.stop(ctx.currentTime + 0.2); // 200ms duration
-        
-        // Resolve after the beep finishes
+        osc.stop(ctx.currentTime + 0.2);
+
         setTimeout(resolve, 250);
-      } catch (e) {
-        console.error('Beep error:', e);
+      } catch (error) {
+        console.error('Beep error:', error);
         resolve();
       }
     });
@@ -61,20 +62,22 @@ export const useVoiceAnnouncement = () => {
 
       const voices = window.speechSynthesis.getVoices();
       let selectedVoice = null;
-      
+
       if (lang === 'ar-SA') {
-        selectedVoice = voices.find(v => v.lang.startsWith('ar')) || voices.find(v => v.name.toLowerCase().includes('arabic'));
+        selectedVoice = voices.find((voice) => voice.lang.startsWith('ar'))
+          || voices.find((voice) => voice.name.toLowerCase().includes('arabic'));
       } else {
-        selectedVoice = voices.find(v => v.lang === 'en-US' && v.name.includes('Google')) || voices.find(v => v.lang.startsWith('en'));
+        selectedVoice = voices.find((voice) => voice.lang === 'en-US' && voice.name.includes('Google'))
+          || voices.find((voice) => voice.lang.startsWith('en'));
       }
 
       if (selectedVoice) {
         utterance.voice = selectedVoice;
       }
-      
+
       utterance.onend = () => resolve();
-      utterance.onerror = (e) => {
-        console.error(`Speech error (${lang}):`, e);
+      utterance.onerror = (error) => {
+        console.error(`Speech error (${lang}):`, error);
         resolve();
       };
 
@@ -82,54 +85,51 @@ export const useVoiceAnnouncement = () => {
     });
   }, []);
 
-  const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+  const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const announceTicket = useCallback(async (ticket) => {
     const ticketNum = ticket.ticketNumber;
     const counterNum = ticket.counter || ticket.counterNumber;
-    
+
     if (!ticketNum || !counterNum) return;
 
     const enText = `Attention please. Ticket ${ticketNum}, please proceed to counter ${counterNum}.`;
-    const arText = `نرجو الانتباه. التذكرة ${ticketNum} يرجى التوجه إلى الكاونتر ${counterNum}.`;
+    const arText = `${ARABIC_CALL_PREFIX} ${ticketNum} ${ARABIC_CALL_SUFFIX} ${counterNum}.`;
 
-    for (let i = 0; i < 2; i++) {
+    for (let i = 0; i < 2; i += 1) {
       if ('speechSynthesis' in window) {
-        window.speechSynthesis.cancel(); // ensure clear buffer
+        window.speechSynthesis.cancel();
       }
-      
+
       await createBeepSound();
       await wait(800);
-      
+
       await speakAnnouncement(enText, 'en-US');
-      await wait(400); // slight pause between languages
-      
+      await wait(400);
+
       await speakAnnouncement(arText, 'ar-SA');
-      await wait(1000); // pause before potential repetition
+      await wait(1000);
     }
   }, [createBeepSound, speakAnnouncement]);
 
   const playNextAnnouncement = useCallback(async () => {
     if (processingRef.current || queueRef.current.length === 0) return;
-    
+
     processingRef.current = true;
     setIsPlayingVoice(true);
 
     try {
       const ticketToPlay = queueRef.current[0];
       await announceTicket(ticketToPlay);
-      
-      // Update queue state to remove the processed ticket
-      setVoiceQueue(prev => prev.slice(1));
+      setVoiceQueue((prev) => prev.slice(1));
     } catch (error) {
       console.error('Error playing announcement:', error);
-      setVoiceQueue(prev => prev.slice(1));
+      setVoiceQueue((prev) => prev.slice(1));
     } finally {
       processingRef.current = false;
       setIsPlayingVoice(false);
-      
-      // Call recursively for next item if any
-      if (queueRef.current.length > 1) { // 1 because state hasn't updated yet in this closure
+
+      if (queueRef.current.length > 1) {
         setTimeout(() => playNextAnnouncement(), 100);
       }
     }
@@ -137,23 +137,19 @@ export const useVoiceAnnouncement = () => {
 
   const addToVoiceQueue = useCallback((ticket) => {
     if (!ticket || !ticket.ticketNumber || (!ticket.counter && !ticket.counterNumber)) return;
-    
-    setLastAnnouncedTicket(prev => {
-      // Check if this ticket is already the last one announced
+
+    setLastAnnouncedTicket((prev) => {
       if (prev && prev.id === ticket.id) return prev;
-      
-      // Add to queue if different
-      setVoiceQueue(q => {
-        // Double check it's not already in the queue
-        if (q.some(t => t.id === ticket.id)) return q;
-        return [...q, ticket];
+
+      setVoiceQueue((queue) => {
+        if (queue.some((queuedTicket) => queuedTicket.id === ticket.id)) return queue;
+        return [...queue, ticket];
       });
-      
+
       return ticket;
     });
   }, []);
 
-  // Auto-start processing when items are added
   useEffect(() => {
     if (voiceQueue.length > 0 && !isPlayingVoice && !processingRef.current) {
       playNextAnnouncement();
