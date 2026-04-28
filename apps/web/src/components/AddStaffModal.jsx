@@ -11,6 +11,8 @@ import { useSyncContext } from '@/contexts/SyncContext.jsx';
 import { Loader2, Copy, CheckCircle2 } from 'lucide-react';
 import { getAppUrl } from '@/lib/runtimeUrls.js';
 import { getCounterOptions } from '@/lib/counterOptions.js';
+import { useLanguage } from '@/contexts/LanguageContext.jsx';
+import { BRANCH_OPTIONS, getBranchLabel, normalizeBranch } from '@/lib/branchOptions.js';
 
 const formatRecordError = (error) => {
   const responseMessage = error?.response?.message || error?.message || 'Unknown error';
@@ -31,20 +33,27 @@ const formatRecordError = (error) => {
 };
 
 export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
+  const { t } = useLanguage();
   const { data: syncData, refetchUsers } = useSyncContext();
   const [loading, setLoading] = useState(false);
   const [successData, setSuccessData] = useState(null);
-  const counterOptions = useMemo(() => getCounterOptions(syncData?.counters), [syncData?.counters]);
+  const modalT = t.staffModal || {};
+  const commonT = t.common || {};
   
   const defaultFormData = {
     username: '',
     email: '',
     password: '',
     role: 'staff',
+    branch: 'AMIS',
     counterNumber: ''
   };
 
   const [formData, setFormData] = useState(defaultFormData);
+  const counterOptions = useMemo(
+    () => getCounterOptions(syncData?.counters, { branch: formData.branch }),
+    [syncData?.counters, formData.branch],
+  );
 
   useEffect(() => {
     if (!formData.counterNumber && counterOptions.length > 0) {
@@ -56,19 +65,19 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
     e.preventDefault();
 
     if (!formData.username?.trim() || !formData.email?.trim() || !formData.password || !formData.role || !formData.counterNumber) {
-      toast.error('All fields are required');
+      toast.error(modalT.requiredFields || 'All fields are required');
       return;
     }
     
     if (formData.password.length < 8) {
-      toast.error('Password must be at least 8 characters long');
+      toast.error(modalT.passwordLength || 'Password must be at least 8 characters long');
       return;
     }
 
     setLoading(true);
     
     try {
-      const data = {
+      const baseData = {
         username: formData.username.trim(),
         email: formData.email.trim(),
         password: formData.password,
@@ -82,17 +91,26 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
         name: formData.username.trim()
       };
 
-      const record = await pb.collection('users').create(data, { $autoCancel: false });
+      let record;
+      try {
+        record = await pb.collection('users').create({
+          ...baseData,
+          branch: formData.branch,
+        }, { $autoCancel: false });
+      } catch (error) {
+        record = await pb.collection('users').create(baseData, { $autoCancel: false });
+      }
       await refetchUsers();
       
       setSuccessData({
         email: record.email,
         password: formData.password,
         role: record.role,
+        branch: normalizeBranch(record.branch || formData.branch),
         counter: record.counterNumber
       });
       
-      toast.success('Staff member created successfully');
+      toast.success(modalT.createdSuccess || 'Staff member created successfully');
       if (onSuccess) onSuccess();
       
     } catch (err) {
@@ -105,9 +123,9 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
 
   const copyCredentials = () => {
     if (!successData) return;
-    const text = `Login URL: ${getAppUrl('/login')}\nEmail: ${successData.email}\nPassword: ${successData.password}\nRole: ${successData.role}\nCounter: ${successData.counter}`;
+    const text = `Login URL: ${getAppUrl('/login')}\nEmail: ${successData.email}\nPassword: ${successData.password}\nRole: ${successData.role}\nBranch: ${successData.branch}\nCounter: ${successData.counter}`;
     navigator.clipboard.writeText(text);
-    toast.success('Credentials copied to clipboard');
+    toast.success(modalT.copied || 'Credentials copied to clipboard');
   };
 
   const handleClose = () => {
@@ -123,7 +141,7 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
       <DialogContent className="sm:max-w-[450px] rounded-2xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-black">
-            {successData ? 'Staff Created' : 'Add New Staff'}
+            {successData ? (modalT.createdTitle || 'Staff Created') : (modalT.addTitle || 'Add New Staff')}
           </DialogTitle>
         </DialogHeader>
         
@@ -133,16 +151,16 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
               <CheckCircle2 className="w-8 h-8" />
             </div>
             <div>
-              <p className="text-lg font-bold text-foreground mb-2">Staff account is ready!</p>
-              <p className="text-sm text-muted-foreground mb-6">Please save these credentials. The password will not be shown again.</p>
+              <p className="text-lg font-bold text-foreground mb-2">{modalT.accountReady || 'Staff account is ready!'}</p>
+              <p className="text-sm text-muted-foreground mb-6">{modalT.saveCredentialsHint || 'Please save these credentials. The password will not be shown again.'}</p>
               
               <div className="bg-muted/50 rounded-xl p-4 text-left space-y-3 border border-border/50">
                 <div>
-                  <span className="text-xs font-bold uppercase text-muted-foreground">Email</span>
+                  <span className="text-xs font-bold uppercase text-muted-foreground">{modalT.email || commonT.email || 'Email'}</span>
                   <p className="font-medium text-foreground">{successData.email}</p>
                 </div>
                 <div>
-                  <span className="text-xs font-bold uppercase text-muted-foreground">Password</span>
+                  <span className="text-xs font-bold uppercase text-muted-foreground">{modalT.password || commonT.password || 'Password'}</span>
                   <p className="font-medium text-foreground font-mono">{successData.password}</p>
                 </div>
               </div>
@@ -150,29 +168,29 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
             
             <div className="flex gap-3">
               <Button variant="outline" className="flex-1 rounded-xl" onClick={copyCredentials}>
-                <Copy className="w-4 h-4 mr-2" /> Copy
+                <Copy className="w-4 h-4 mr-2" /> {modalT.copy || commonT.copy || 'Copy'}
               </Button>
               <Button className="flex-1 rounded-xl" onClick={handleClose}>
-                Done
+                {modalT.done || commonT.done || 'Done'}
               </Button>
             </div>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="space-y-4 py-4">
             <div className="space-y-2">
-              <Label htmlFor="username">Username <span className="text-destructive">*</span></Label>
+              <Label htmlFor="username">{modalT.username || commonT.username || 'Username'} <span className="text-destructive">*</span></Label>
               <Input 
                 id="username" 
                 value={formData.username} 
                 onChange={e => setFormData({...formData, username: e.target.value})} 
                 disabled={loading}
                 required
-                placeholder="e.g. jsmith"
+                placeholder={modalT.usernamePlaceholder || 'e.g. jsmith'}
                 className="text-foreground rounded-xl"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="email">Email <span className="text-destructive">*</span></Label>
+              <Label htmlFor="email">{modalT.email || commonT.email || 'Email'} <span className="text-destructive">*</span></Label>
               <Input 
                 id="email" 
                 type="email" 
@@ -180,12 +198,12 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
                 onChange={e => setFormData({...formData, email: e.target.value})} 
                 required
                 disabled={loading}
-                placeholder="staff@example.com"
+                placeholder={modalT.emailPlaceholder || 'staff@example.com'}
                 className="text-foreground rounded-xl"
               />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password <span className="text-destructive">*</span></Label>
+              <Label htmlFor="password">{modalT.password || commonT.password || 'Password'} <span className="text-destructive">*</span></Label>
               <Input 
                 id="password" 
                 type="password" 
@@ -194,40 +212,60 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
                 required
                 minLength={8}
                 disabled={loading}
-                placeholder="Min 8 characters"
+                placeholder={modalT.passwordPlaceholder || 'Min 8 characters'}
                 className="text-foreground rounded-xl"
               />
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-2">
-                <Label htmlFor="role">Role <span className="text-destructive">*</span></Label>
+                <Label htmlFor="branch">{commonT.branch || 'Branch'} <span className="text-destructive">*</span></Label>
+                <Select
+                  value={formData.branch}
+                  onValueChange={(value) => setFormData({ ...formData, branch: value, counterNumber: '' })}
+                  disabled={loading}
+                  required
+                >
+                  <SelectTrigger className="text-foreground rounded-xl">
+                    <SelectValue placeholder={commonT.branch || 'Branch'} />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl">
+                    {BRANCH_OPTIONS.map((branchOption) => (
+                      <SelectItem key={branchOption.value} value={branchOption.value}>
+                        {getBranchLabel(branchOption.value)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="role">{modalT.role || commonT.role || 'Role'} <span className="text-destructive">*</span></Label>
                 <Select 
                   value={formData.role} 
                   onValueChange={v => setFormData({...formData, role: v})}
                   disabled={loading}
                   required
                 >
-                  <SelectTrigger className="text-foreground rounded-xl"><SelectValue placeholder="Select role" /></SelectTrigger>
+                  <SelectTrigger className="text-foreground rounded-xl"><SelectValue placeholder={modalT.selectRole || 'Select role'} /></SelectTrigger>
                   <SelectContent className="rounded-xl">
-                    <SelectItem value="admin">Admin</SelectItem>
-                    <SelectItem value="staff">Staff</SelectItem>
-                    <SelectItem value="operator">Operator</SelectItem>
+                    <SelectItem value="admin">{modalT.admin || 'Admin'}</SelectItem>
+                    <SelectItem value="staff">{modalT.staff || 'Staff'}</SelectItem>
+                    <SelectItem value="operator">{modalT.operator || 'Operator'}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="counterNumber">Counter <span className="text-destructive">*</span></Label>
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="counterNumber">{modalT.counter || commonT.counter || 'Counter'} <span className="text-destructive">*</span></Label>
                 <Select 
                   value={formData.counterNumber} 
                   onValueChange={v => setFormData({...formData, counterNumber: v})}
                   disabled={loading}
                   required
                 >
-                  <SelectTrigger className="text-foreground rounded-xl"><SelectValue placeholder="Select counter" /></SelectTrigger>
+                  <SelectTrigger className="text-foreground rounded-xl"><SelectValue placeholder={modalT.selectCounter || 'Select counter'} /></SelectTrigger>
                   <SelectContent className="rounded-xl">
                     {counterOptions.map(num => (
                       <SelectItem key={num} value={num.toString()}>
-                        Counter {num}
+                        {(commonT.counter || 'Counter')} {num}
                       </SelectItem>
                     ))}
                   </SelectContent>
@@ -236,16 +274,16 @@ export const AddStaffModal = ({ open, onOpenChange, onSuccess }) => {
             </div>
             <DialogFooter className="pt-6">
               <Button type="button" variant="outline" onClick={handleClose} disabled={loading} className="rounded-xl">
-                Cancel
+                {modalT.cancel || commonT.cancel || 'Cancel'}
               </Button>
               <Button type="submit" disabled={loading} className="rounded-xl shadow-lg shadow-primary/20">
                 {loading ? (
                   <>
                     <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Creating...
+                    {modalT.creating || 'Creating...'}
                   </>
                 ) : (
-                  'Create Staff'
+                  modalT.create || 'Create Staff'
                 )}
               </Button>
             </DialogFooter>
