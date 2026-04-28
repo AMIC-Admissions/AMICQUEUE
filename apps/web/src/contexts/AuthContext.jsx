@@ -2,6 +2,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import pb from '@/lib/pocketbaseClient.js';
 import { getAppPath } from '@/lib/runtimeUrls.js';
+import { normalizeBranch } from '@/lib/branchOptions.js';
 
 const AuthContext = createContext(null);
 
@@ -11,9 +12,17 @@ export const AuthProvider = ({ children }) => {
   const [selectedCounter, _setSelectedCounter] = useState(() => {
     return localStorage.getItem('selectedCounter') || null;
   });
+  const [selectedBranch, _setSelectedBranch] = useState(() => {
+    return localStorage.getItem('selectedBranch') || null;
+  });
 
   const getSelectedCounter = () => {
     return localStorage.getItem('selectedCounter');
+  };
+
+  const getSelectedBranch = () => {
+    const branch = localStorage.getItem('selectedBranch');
+    return branch ? normalizeBranch(branch) : null;
   };
 
   const setSelectedCounter = (counterNumber) => {
@@ -23,6 +32,17 @@ export const AuthProvider = ({ children }) => {
     } else {
       localStorage.removeItem('selectedCounter');
       _setSelectedCounter(null);
+    }
+  };
+
+  const setSelectedBranch = (branch) => {
+    if (branch) {
+      const normalizedBranch = normalizeBranch(branch);
+      localStorage.setItem('selectedBranch', normalizedBranch);
+      _setSelectedBranch(normalizedBranch);
+    } else {
+      localStorage.removeItem('selectedBranch');
+      _setSelectedBranch(null);
     }
   };
 
@@ -36,6 +56,7 @@ export const AuthProvider = ({ children }) => {
           pb.authStore.clear();
           setCurrentUser(null);
           setSelectedCounter(null);
+          setSelectedBranch(null);
         }
       } else {
         pb.authStore.clear();
@@ -50,6 +71,7 @@ export const AuthProvider = ({ children }) => {
       if (!token || !model?.id) {
         setCurrentUser(null);
         setSelectedCounter(null);
+        setSelectedBranch(null);
       } else {
         pb.collection('users').getOne(model.id, { $autoCancel: false })
           .then(setCurrentUser)
@@ -57,6 +79,7 @@ export const AuthProvider = ({ children }) => {
             pb.authStore.clear();
             setCurrentUser(null);
             setSelectedCounter(null);
+            setSelectedBranch(null);
           });
       }
     });
@@ -85,6 +108,7 @@ export const AuthProvider = ({ children }) => {
       pb.authStore.clear();
       setCurrentUser(null);
       setSelectedCounter(null);
+      setSelectedBranch(null);
       window.location.assign(getAppPath('/login'));
     } catch (error) {
       // Fail silently
@@ -111,6 +135,10 @@ export const AuthProvider = ({ children }) => {
       isAuthenticated,
       isAdmin,
       isStaff,
+      initialLoading,
+      selectedBranch,
+      setSelectedBranch,
+      getSelectedBranch,
       selectedCounter,
       setSelectedCounter,
       getSelectedCounter
@@ -130,6 +158,10 @@ export const useAuth = () => {
       isAuthenticated: false,
       isAdmin: false,
       isStaff: false,
+      initialLoading: false,
+      selectedBranch: null,
+      setSelectedBranch: () => {},
+      getSelectedBranch: () => null,
       selectedCounter: null,
       setSelectedCounter: () => {},
       getSelectedCounter: () => null
