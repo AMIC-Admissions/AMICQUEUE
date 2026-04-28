@@ -2,6 +2,7 @@ import React, { createContext, useContext, useState, useEffect, useCallback, use
 import pb from '@/lib/pocketbaseClient.js';
 import { getCanonicalCounters } from '@/lib/counterOptions.js';
 import { getAvailableServices } from '@/lib/serviceOptions.js';
+import { normalizeBranch } from '@/lib/branchOptions.js';
 
 const SyncContext = createContext(null);
 
@@ -35,6 +36,7 @@ const normalizeUsers = (users) => {
       return {
         ...user,
         role,
+        branch: normalizeBranch(user?.branch),
         counterNumber: counterNumber > 0 ? counterNumber : (legacyCounter > 0 ? legacyCounter : 0),
       };
     })
