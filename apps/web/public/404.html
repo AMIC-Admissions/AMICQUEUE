@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta name="viewport" content="width=device-width, initial-scale=1" />
+		<title>Redirecting...</title>
+		<script>
+			(function redirectToSpaRoot() {
+				const segments = window.location.pathname.split('/').filter(Boolean);
+				const repoBase = segments.length > 0 ? `/${segments[0]}` : '';
+				const routePath = window.location.pathname.slice(repoBase.length) || '/';
+				const redirectPath = `${routePath}${window.location.search || ''}${window.location.hash || ''}`;
+
+				sessionStorage.setItem('redirectPath', redirectPath);
+				window.location.replace(`${window.location.origin}${repoBase}/`);
+			})();
+		</script>
+	</head>
+	<body></body>
+</html>
