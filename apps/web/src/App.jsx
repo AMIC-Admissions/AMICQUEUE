@@ -26,18 +26,25 @@ import SettingsPage from '@/pages/SettingsPage.jsx';
 import CounterMonitorPage from '@/pages/CounterMonitorPage.jsx';
 
 import { Toaster } from 'sonner';
+import { useLanguage } from '@/contexts/LanguageContext.jsx';
 
 const routerBasename = import.meta.env.BASE_URL === '/'
   ? undefined
   : import.meta.env.BASE_URL.replace(/\/$/, '');
 
-const NotFoundPage = () => (
-  <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
-    <h1 className="text-7xl font-black text-primary mb-4 font-display">404</h1>
-    <h2 className="text-3xl font-bold mb-4">Page Not Found</h2>
-    <a href={import.meta.env.BASE_URL} className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-bold shadow-lg">Return Home</a>
-  </div>
-);
+const NotFoundPage = () => {
+  const { language } = useLanguage();
+
+  return (
+    <div className="min-h-[60vh] flex flex-col items-center justify-center text-center px-4">
+      <h1 className="text-7xl font-black text-primary mb-4 font-display">404</h1>
+      <h2 className="text-3xl font-bold mb-4">{language === 'ar' ? 'الصفحة غير موجودة' : 'Page Not Found'}</h2>
+      <a href={import.meta.env.BASE_URL} className="bg-primary text-primary-foreground px-8 py-4 rounded-xl font-bold shadow-lg">
+        {language === 'ar' ? 'العودة للرئيسية' : 'Return Home'}
+      </a>
+    </div>
+  );
+};
 
 const RootRedirect = () => {
   const { isAuthenticated, selectedCounter, initialLoading, isAdmin } = useAuth();
@@ -106,6 +113,7 @@ function App() {
                   <Route path="/track" element={<Layout><TrackingPage /></Layout>} />
 
                   <Route path="/display" element={<DisplayScreen />} />
+                  <Route path="/display/:branchKey" element={<DisplayScreen />} />
 
                   <Route path="/counter-select" element={
                     <ProtectedRoute>
@@ -132,6 +140,7 @@ function App() {
                   } />
 
                   <Route path="/counter-monitor" element={<Layout><CounterMonitorPage /></Layout>} />
+                  <Route path="/counter-monitor/:branchKey" element={<Layout><CounterMonitorPage /></Layout>} />
 
                   <Route path="/admin" element={
                     <ProtectedRoute requireAdmin={true}>
