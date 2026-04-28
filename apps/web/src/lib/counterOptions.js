@@ -1,4 +1,24 @@
+import { normalizeBranch } from '@/lib/branchOptions.js';
+
 export const getCounterNumberValue = (value) => Number(value?.counterNumber ?? value?.counter ?? 0);
+const inferBranchFromName = (name) => {
+  const normalizedName = String(name || '').trim().toLowerCase();
+  if (!normalizedName) return null;
+
+  if (normalizedName.includes('kids') || normalizedName.includes('gate') || normalizedName.includes('بوابة')) {
+    return 'KIDS';
+  }
+
+  if (normalizedName.includes('ajyal') || normalizedName.includes('ajial') || normalizedName.includes('أجيال')) {
+    return 'AMIS';
+  }
+
+  return null;
+};
+
+export const getCounterBranchValue = (value) => normalizeBranch(value?.branch || inferBranchFromName(value?.name));
+
+export const getCounterKey = (value) => `${getCounterBranchValue(value)}:${getCounterNumberValue(value)}`;
 
 export const normalizeCounterStatus = (status) => {
   const normalized = String(status || '').trim().toLowerCase();
@@ -34,14 +54,16 @@ export const getCanonicalCounters = (counters) => {
 
     const normalizedCounter = {
       ...counter,
+      branch: getCounterBranchValue(counter),
       counterNumber,
       name: String(counter?.name || '').trim() || `Counter ${counterNumber}`,
       status: normalizeCounterStatus(counter?.status),
     };
 
-    const existing = byNumber.get(counterNumber);
+    const counterKey = getCounterKey(normalizedCounter);
+    const existing = byNumber.get(counterKey);
     if (!existing) {
-      byNumber.set(counterNumber, normalizedCounter);
+      byNumber.set(counterKey, normalizedCounter);
       return;
     }
 
@@ -49,11 +71,15 @@ export const getCanonicalCounters = (counters) => {
     const nextScore = getCounterScore(normalizedCounter);
 
     if (nextScore > existingScore || (nextScore === existingScore && getCounterTimestamp(normalizedCounter) > getCounterTimestamp(existing))) {
-      byNumber.set(counterNumber, normalizedCounter);
+      byNumber.set(counterKey, normalizedCounter);
     }
   });
 
-  return Array.from(byNumber.values()).sort((a, b) => a.counterNumber - b.counterNumber);
+  return Array.from(byNumber.values()).sort((left, right) => {
+    const branchDelta = getCounterBranchValue(left).localeCompare(getCounterBranchValue(right));
+    if (branchDelta !== 0) return branchDelta;
+    return left.counterNumber - right.counterNumber;
+  });
 };
 
 export const isCounterActive = (counter) => {
@@ -62,12 +88,17 @@ export const isCounterActive = (counter) => {
   return status === 'active';
 };
 
-export const getCounterOptions = (counters, { includeInactive = false, fallbackCount = 10 } = {}) => {
+export const getCounterOptions = (counters, { branch = null, includeInactive = false, fallbackCount = 10 } = {}) => {
   const canonicalCounters = getCanonicalCounters(counters);
+  const normalizedBranch = branch ? normalizeBranch(branch) : null;
   const hasConfiguredCounters = canonicalCounters.length > 0;
+  const branchCounters = normalizedBranch
+    ? canonicalCounters.filter((counter) => counter.branch === normalizedBranch)
+    : canonicalCounters;
+  const hasConfiguredBranchCounters = branchCounters.length > 0;
 
   const configured = hasConfiguredCounters
-    ? canonicalCounters
+    ? branchCounters
       .filter(Boolean)
       .filter((counter) => includeInactive || isCounterActive(counter))
       .map((counter) => Number(counter.counterNumber))
@@ -75,11 +106,11 @@ export const getCounterOptions = (counters, { includeInactive = false, fallbackC
     : [];
 
   const fallback = Array.from({ length: fallbackCount }, (_, index) => index + 1);
-  const source = configured.length > 0 || hasConfiguredCounters ? configured : fallback;
+  const source = configured.length > 0 || hasConfiguredBranchCounters ? configured : fallback;
   return Array.from(new Set(source)).sort((a, b) => a - b);
 };
 
-export const getNextCounterNumber = (counters) => {
-  const numbers = getCounterOptions(counters, { includeInactive: true, fallbackCount: 0 });
+export const getNextCounterNumber = (counters, { branch = null } = {}) => {
+  const numbers = getCounterOptions(counters, { branch, includeInactive: true, fallbackCount: 0 });
   return numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
 };
