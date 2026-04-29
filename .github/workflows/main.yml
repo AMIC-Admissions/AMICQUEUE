@@ -43,9 +43,6 @@ jobs:
           VITE_POCKETBASE_URL: https://pb.amic.edu.sa
           VITE_API_SERVER_URL: ${{ vars.VITE_API_SERVER_URL }}
 
-      - name: Add GitHub Pages fallback
-        run: cp dist/apps/web/index.html dist/apps/web/404.html
-
       - name: Setup Pages
         uses: actions/configure-pages@v5
 
